@@ -20,7 +20,7 @@ export default function AppLayout() {
         <div className="flex h-16 items-center gap-3 border-b border-white/10 px-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c9944a] font-bold text-[#123c5a]">MQ</div>
           <div>
-            <div className="text-sm font-semibold tracking-wide">敏群商贸 ERP</div>
+            <div className="text-sm font-semibold tracking-wide">面料 ERP</div>
             <div className="text-xs text-white/60">面料样品管理系统</div>
           </div>
         </div>

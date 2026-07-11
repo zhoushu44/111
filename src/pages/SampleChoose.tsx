@@ -1,102 +1,106 @@
-import { useMemo, useState } from 'react'
-import { FileDown, Plus, Printer, Save, ScanLine, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import DataTable from '@/components/DataTable'
 import PageHeader from '@/components/PageHeader'
-import { customers, fabrics } from '@/data/mock'
-import type { MaterialFabric } from '@/types'
+import { api } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 
-interface SelectedFabric extends MaterialFabric {
-  quantity: number
-  temporaryRemark: string
-}
+type Material = { id: string; itemNo: string; name: string; specification?: string | null }
+type Customer = { id: string; code: string; name: string }
+type Selected = Material & { quantity: number; remark: string }
 
 export default function SampleChoose() {
-  const [customerId, setCustomerId] = useState(customers[0]?.id ?? '')
-  const [scanCode, setScanCode] = useState('')
-  const [selected, setSelected] = useState<SelectedFabric[]>(fabrics.slice(0, 1).map((item) => ({ ...item, quantity: 1, temporaryRemark: '' })))
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const admin = useAuthStore((state) => state.user?.role === 'admin')
+  const autoAdded = useRef(false)
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [customerId, setCustomerId] = useState('')
+  const [code, setCode] = useState(params.get('item') ?? '')
+  const [items, setItems] = useState<Selected[]>([])
+  const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
 
-  const customer = useMemo(() => customers.find((item) => item.id === customerId), [customerId])
+  useEffect(() => {
+    setLoading(true)
+    void Promise.all([
+      api.get<{ list: Customer[] }>('/sample-customers?pageSize=100'),
+      api.get<{ list: Material[] }>('/materials?pageSize=100&status=ACTIVE'),
+    ]).then(([customerResult, materialResult]) => {
+      setCustomers(customerResult.list)
+      setCustomerId(customerResult.list[0]?.id ?? '')
+      setMaterials(materialResult.list)
+    }).catch((error: Error) => setMessage(error.message)).finally(() => setLoading(false))
+  }, [])
 
-  const addFabric = (code?: string) => {
-    const keyword = (code ?? scanCode).trim().toLowerCase()
-    const target = fabrics.find((item) => item.itemNo.toLowerCase() === keyword) ?? fabrics.find((item) => !selected.some((row) => row.id === item.id))
+  useEffect(() => {
+    const itemNo = params.get('item')
+    if (!itemNo || !materials.length || autoAdded.current) return
+    autoAdded.current = true
+    const material = materials.find((item) => item.itemNo.toLowerCase() === itemNo.trim().toLowerCase())
+    if (!material) return setMessage('未找到启用面料')
+    setItems([{ ...material, quantity: 1, remark: '' }])
+    setCode('')
+  }, [materials, params])
 
-    if (!target) {
-      setMessage('没有可添加的面料')
-      return
+  const add = () => {
+    const material = materials.find((item) => item.itemNo.toLowerCase() === code.trim().toLowerCase())
+    if (!material) return setMessage('未找到启用面料')
+    setItems((current) => current.some((item) => item.id === material.id)
+      ? current.map((item) => item.id === material.id ? { ...item, quantity: item.quantity + 1 } : item)
+      : [...current, { ...material, quantity: 1, remark: '' }])
+    setCode('')
+    setMessage('')
+  }
+
+  const save = async () => {
+    if (!customerId) return setMessage('当前没有可选客户，请先维护并启用客户资料')
+    if (!items.length) return setMessage('选样清单为空，请先添加面料')
+    setSaving(true)
+    setMessage('正在保存选样单…')
+    try {
+      const result = await api.post<{ documentNo: string }>('/sample-chooses', {
+        customerId,
+        items: items.map((item) => ({ materialId: item.id, quantity: item.quantity, remark: item.remark || null })),
+      })
+      navigate(`/samples/choose-records?documentNo=${encodeURIComponent(result.documentNo)}`)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '保存失败')
+    } finally {
+      setSaving(false)
     }
-
-    if (selected.some((item) => item.id === target.id)) {
-      setMessage(`${target.itemNo} 已在选样清单中`)
-      return
-    }
-
-    setSelected((list) => [...list, { ...target, quantity: 1, temporaryRemark: '' }])
-    setScanCode('')
-    setMessage(`已添加 ${target.itemNo}`)
   }
 
-  const updateItem = (id: string, patch: Partial<SelectedFabric>) => {
-    setSelected((list) => list.map((item) => (item.id === id ? { ...item, ...patch } : item)))
-  }
-
-  const removeItem = (id: string) => {
-    setSelected((list) => list.filter((item) => item.id !== id))
-    setMessage('已移除选样明细')
-  }
-
-  const saveChoose = () => {
-    setMessage(`已保存 ${customer?.name ?? '客户'} 的选样单，共 ${selected.length} 款`)
-  }
-
-  return (
-    <div>
-      <PageHeader title="客户选样管理" description="选择客户后，通过手动编码、扫码枪或查询方式添加面料，生成选样单。" />
-      <div className="mb-5 grid grid-cols-[360px_1fr] gap-5">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 font-bold">选样信息</h2>
-          <label className="mb-2 block text-xs font-semibold text-slate-500">客户</label>
-          <select value={customerId} onChange={(event) => setCustomerId(event.target.value)} className="mb-4 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#1e8a7a]">
-            {customers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-          <label className="mb-2 block text-xs font-semibold text-slate-500">扫码/输入 Item No.</label>
-          <div className="flex gap-2">
-            <input value={scanCode} onChange={(event) => setScanCode(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && addFabric()} className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#1e8a7a]" placeholder="MQ-CT-24001" />
-            <button onClick={() => addFabric()} className="rounded-lg bg-[#123c5a] px-3 text-white"><ScanLine size={18} /></button>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-            <label className="flex items-center gap-2"><input type="checkbox" defaultChecked /> 规格</label>
-            <label className="flex items-center gap-2"><input type="checkbox" /> 成本</label>
-            <label className="flex items-center gap-2"><input type="checkbox" defaultChecked /> 图片</label>
-            <label className="flex items-center gap-2"><input type="checkbox" defaultChecked /> 备注</label>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 font-bold">操作区</h2>
-          <div className="grid grid-cols-4 gap-3">
-            <button onClick={() => addFabric()} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold hover:border-[#1e8a7a]"><Plus size={17} />添加面料</button>
-            <button onClick={saveChoose} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold hover:border-[#1e8a7a]"><Save size={17} />保存选样</button>
-            <button onClick={() => setMessage('已生成 Excel 导出任务')} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold hover:border-[#1e8a7a]"><FileDown size={17} />导出 Excel</button>
-            <button onClick={() => setMessage('已进入批量标签打印流程')} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold hover:border-[#1e8a7a]"><Printer size={17} />打印标签</button>
-          </div>
-          <div className="mt-4 rounded-xl bg-[#f8f4ec] p-4 text-sm text-slate-600">
-            当前客户：<b>{customer?.name}</b>；已选 <b>{selected.length}</b> 款。{message ? <span className="ml-2 text-[#1e8a7a]">{message}</span> : null}
-          </div>
-        </div>
-      </div>
-      <DataTable<SelectedFabric>
-        data={selected}
-        columns={[
-          { title: 'Item No.', render: (row) => <span className="font-semibold text-[#123c5a]">{row.itemNo}</span> },
-          { title: '图片', render: (row) => <img src={row.image} className="h-12 w-12 rounded-lg object-cover" /> },
-          { title: '面料名称', render: (row) => row.name },
-          { title: '规格', render: (row) => `${row.composition} / ${row.width} / ${row.weight}` },
-          { title: '数量', render: (row) => <input type="number" min={1} className="h-8 w-20 rounded border border-slate-200 px-2" value={row.quantity} onChange={(event) => updateItem(row.id, { quantity: Number(event.target.value) })} /> },
-          { title: '临时备注', render: (row) => <input className="h-8 w-full rounded border border-slate-200 px-2" value={row.temporaryRemark} onChange={(event) => updateItem(row.id, { temporaryRemark: event.target.value })} placeholder="本次打印备注" /> },
-          { title: '操作', render: (row) => <button onClick={() => removeItem(row.id)} className="text-red-500"><Trash2 size={16} /></button> },
-        ]}
-      />
+  const labelUrl = `/print/labels?materialIds=${items.map((item) => item.id).join(',')}`
+  return <div>
+    <PageHeader title="客户选样管理" description="选择客户，通过手输或扫码添加启用面料。" />
+    <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+      <label>客户
+        <select className="ml-2 border p-2" value={customerId} onChange={(event) => setCustomerId(event.target.value)} disabled={!customers.length}>
+          {customers.length ? customers.map((item) => <option value={item.id} key={item.id}>{item.code} - {item.name}</option>) : <option>暂无启用客户</option>}
+        </select>
+      </label>
+      <label>Item No.
+        <input className="ml-2 border p-2" value={code} onChange={(event) => setCode(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && add()} placeholder="扫码/输入 Item No." />
+      </label>
+      <button onClick={add}>添加面料</button>
+      <button disabled={!items.length} onClick={() => navigate(labelUrl)}>预览/标签</button>
+      <button className="bg-[#123c5a] px-4 py-2 text-white disabled:opacity-50" disabled={saving} onClick={() => void save()}>{saving ? '保存中…' : '保存选样'}</button>
     </div>
-  )
+    {message && <p className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">{message}</p>}
+    {loading && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">加载中…</p>}
+    {!customers.length && <p className="mb-3 rounded bg-amber-50 p-3 text-amber-800">暂无可选客户，请先在客户资料维护中创建并启用客户。</p>}
+    {!items.length && <p className="mb-3 rounded bg-slate-50 p-3 text-slate-500">选样清单为空，输入 Item No. 后点击“添加面料”。</p>}
+    <DataTable data={items} columns={[
+      { title: 'Item No.', render: (row) => row.itemNo },
+      { title: '面料名称', render: (row) => row.name },
+      { title: '规格', render: (row) => row.specification || '-' },
+      { title: '数量', render: (row) => <input type="number" min="1" value={row.quantity} onChange={(event) => setItems((current) => current.map((item) => item.id === row.id ? { ...item, quantity: Math.max(1, Number(event.target.value) || 1) } : item))} /> },
+      { title: '备注', render: (row) => <input value={row.remark} onChange={(event) => setItems((current) => current.map((item) => item.id === row.id ? { ...item, remark: event.target.value } : item))} /> },
+      { title: '操作', render: (row) => <button onClick={() => setItems((current) => current.filter((item) => item.id !== row.id))}>删除</button> },
+    ]} />
+    {admin && <p className="mt-3 text-xs text-slate-500">选样导出时可选择包含规格、成本和图片。</p>}
+  </div>
 }

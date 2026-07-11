@@ -1,4 +1,4 @@
-import { Archive, BookOpen, Boxes, ClipboardList, Database, FileSearch, Home, PackageCheck, Printer, Settings, Shirt, Tags, Truck, UserCog, Users } from 'lucide-react'
+import { Archive, BookOpen, Boxes, ClipboardList, Database, FileSearch, Home, PackageCheck, Printer, ScrollText, Settings, ShieldCheck, Shirt, Tags, Truck, UserCog, Users } from 'lucide-react'
 import type { MenuItem } from '@/types'
 
 export const menuItems: MenuItem[] = [
@@ -13,8 +13,11 @@ export const menuItems: MenuItem[] = [
   { path: '/samples/inbound', label: '样品入库', icon: PackageCheck, roles: ['admin', 'staff'], group: '样品库存' },
   { path: '/samples/outbound', label: '样品出库', icon: Boxes, roles: ['admin', 'staff'], group: '样品库存' },
   { path: '/samples/stock', label: '样品库存查询', icon: Database, roles: ['admin', 'staff'], group: '样品库存' },
+  { path: '/samples/transactions', label: '库存流水', icon: ScrollText, roles: ['admin', 'staff'], group: '样品库存' },
   { path: '/info/material-query', label: '面料查询', icon: BookOpen, roles: ['admin', 'staff'], group: '信息中心' },
   { path: '/print/labels', label: '标签打印', icon: Printer, roles: ['admin', 'staff'], group: '打印' },
   { path: '/system/users', label: '用户管理', icon: UserCog, roles: ['admin'], group: '系统管理' },
+  { path: '/system/roles', label: '角色权限', icon: ShieldCheck, roles: ['admin'], group: '系统管理' },
   { path: '/system/dictionaries', label: '数据字典', icon: Settings, roles: ['admin'], group: '系统管理' },
+  { path: '/system/logs', label: '操作日志', icon: ScrollText, roles: ['admin'], group: '系统管理' },
 ]

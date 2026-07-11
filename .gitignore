@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# API runtime secrets and local file storage
+api/.env
+api/uploads/

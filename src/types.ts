@@ -54,6 +54,17 @@ export interface Provider {
   status: string
 }
 
+export interface SampleChooseDetail {
+  itemNo: string
+  name: string
+  composition: string
+  construction: string
+  width: string
+  weight: string
+  quantity: number
+  remark: string
+}
+
 export interface SampleChooseRecord {
   id: string
   orderNo: string
@@ -62,4 +73,5 @@ export interface SampleChooseRecord {
   operator: string
   itemCount: number
   status: string
+  details: SampleChooseDetail[]
 }

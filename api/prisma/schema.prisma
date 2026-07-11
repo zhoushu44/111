@@ -1,0 +1,307 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleCode {
+  ADMIN
+  STAFF
+}
+
+enum AccountStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum RecordStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum DocumentStatus {
+  ACTIVE
+  VOIDED
+}
+
+model Role {
+  id          String        @id @default(uuid()) @db.Uuid
+  code        RoleCode      @unique
+  name        String        @unique @db.VarChar(50)
+  description String?       @db.VarChar(255)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  users       UserAccount[]
+  @@map("role")
+}
+
+model UserAccount {
+  id           String        @id @default(uuid()) @db.Uuid
+  username     String        @unique @db.VarChar(50)
+  displayName  String        @db.VarChar(100)
+  passwordHash String        @map("password_hash") @db.VarChar(255)
+  status       AccountStatus @default(ACTIVE)
+  roleId       String        @map("role_id") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  role         Role          @relation(fields: [roleId], references: [id])
+  sessions     UserSession[]
+  sampleChooses SampleChoose[] @relation("sample_choose_creator")
+  sampleIns    SampleIn[]    @relation("sample_in_creator")
+  sampleOuts   SampleOut[]   @relation("sample_out_creator")
+  operationLogs OperationLog[]
+  @@index([roleId])
+  @@map("user_account")
+}
+
+model UserSession {
+  id               String      @id @default(uuid()) @db.Uuid
+  userId           String      @map("user_id") @db.Uuid
+  refreshTokenHash String      @map("refresh_token_hash") @db.VarChar(255)
+  deviceName       String?     @map("device_name") @db.VarChar(255)
+  expiresAt        DateTime    @map("expires_at")
+  revokedAt        DateTime?   @map("revoked_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+  user             UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, expiresAt])
+  @@map("user_session")
+}
+
+model MaterialCategory {
+  id        String              @id @default(uuid()) @db.Uuid
+  name      String              @unique @db.VarChar(100)
+  parentId  String?             @map("parent_id") @db.Uuid
+  status    RecordStatus        @default(ACTIVE)
+  sortOrder Int                 @default(0) @map("sort_order")
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+  parent    MaterialCategory?   @relation("category_tree", fields: [parentId], references: [id])
+  children  MaterialCategory[]  @relation("category_tree")
+  fabrics   MaterialFabric[]
+  @@index([parentId, status])
+  @@map("material_category")
+}
+
+model Provider {
+  id        String           @id @default(uuid()) @db.Uuid
+  code      String           @unique @db.VarChar(50)
+  name      String           @db.VarChar(150)
+  contact   String?          @db.VarChar(100)
+  phone     String?          @db.VarChar(50)
+  address   String?          @db.VarChar(255)
+  status    RecordStatus     @default(ACTIVE)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  fabrics   MaterialFabric[]
+  @@index([name])
+  @@map("provider")
+}
+
+model Customer {
+  id        String         @id @default(uuid()) @db.Uuid
+  code      String         @unique @db.VarChar(50)
+  name      String         @db.VarChar(150)
+  contact   String?        @db.VarChar(100)
+  phone     String?        @db.VarChar(50)
+  address   String?        @db.VarChar(255)
+  status    RecordStatus   @default(ACTIVE)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  chooses   SampleChoose[]
+  @@index([name])
+  @@map("customer")
+}
+
+model SampleLocation {
+  id        String        @id @default(uuid()) @db.Uuid
+  code      String        @unique @db.VarChar(50)
+  name      String        @db.VarChar(100)
+  status    RecordStatus  @default(ACTIVE)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+  stocks    SampleStock[]
+  sampleInItems SampleInItem[]
+  sampleOutItems SampleOutItem[]
+  @@map("sample_location")
+}
+
+model MaterialFabric {
+  id          String            @id @default(uuid()) @db.Uuid
+  itemNo      String            @unique @map("item_no") @db.VarChar(100)
+  name        String            @db.VarChar(150)
+  specification String?         @db.VarChar(255)
+  composition   String?         @db.VarChar(255)
+  construction  String?         @db.VarChar(255)
+  width         String?         @db.VarChar(100)
+  weight        String?         @db.VarChar(100)
+  color         String?         @db.VarChar(100)
+  unit          String          @default("米") @db.VarChar(20)
+  remark        String?         @db.VarChar(500)
+  labelRemark   String?         @map("label_remark") @db.VarChar(500)
+  cost          Decimal?        @db.Decimal(12, 2)
+  categoryId  String            @map("category_id") @db.Uuid
+  providerId  String?           @map("provider_id") @db.Uuid
+  status      RecordStatus      @default(ACTIVE)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  category    MaterialCategory  @relation(fields: [categoryId], references: [id])
+  provider    Provider?         @relation(fields: [providerId], references: [id])
+  images      MaterialImage[]
+  chooseItems SampleChooseItem[]
+  sampleInItems SampleInItem[]
+  sampleOutItems SampleOutItem[]
+  stocks      SampleStock[]
+  @@index([name])
+  @@index([categoryId])
+  @@index([providerId])
+  @@map("material_fabric")
+}
+
+model MaterialImage {
+  id         String          @id @default(uuid()) @db.Uuid
+  materialId String          @map("material_id") @db.Uuid
+  url        String          @db.VarChar(500)
+  thumbnailUrl String?       @map("thumbnail_url") @db.VarChar(500)
+  sortOrder  Int             @default(0) @map("sort_order")
+  createdAt  DateTime        @default(now()) @map("created_at")
+  material   MaterialFabric  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  @@index([materialId, sortOrder])
+  @@map("material_image")
+}
+
+model SampleChoose {
+  id           String         @id @default(uuid()) @db.Uuid
+  documentNo   String         @unique @map("document_no") @db.VarChar(50)
+  customerId   String         @map("customer_id") @db.Uuid
+  customerName String         @map("customer_name") @db.VarChar(150)
+  status       DocumentStatus @default(ACTIVE)
+  remark       String?        @db.VarChar(500)
+  createdById  String         @map("created_by_id") @db.Uuid
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  voidedAt     DateTime?      @map("voided_at")
+  customer     Customer       @relation(fields: [customerId], references: [id])
+  createdBy    UserAccount    @relation("sample_choose_creator", fields: [createdById], references: [id])
+  items        SampleChooseItem[]
+  @@index([customerId, createdAt])
+  @@index([createdById, createdAt])
+  @@map("sample_choose")
+}
+
+model SampleChooseItem {
+  id             String          @id @default(uuid()) @db.Uuid
+  sampleChooseId String          @map("sample_choose_id") @db.Uuid
+  materialId     String          @map("material_id") @db.Uuid
+  itemNoSnapshot String          @map("item_no_snapshot") @db.VarChar(100)
+  nameSnapshot   String          @map("name_snapshot") @db.VarChar(150)
+  specSnapshot   String?         @map("spec_snapshot") @db.VarChar(255)
+  quantity       Int
+  remark         String?         @db.VarChar(500)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  sampleChoose   SampleChoose    @relation(fields: [sampleChooseId], references: [id], onDelete: Cascade)
+  material       MaterialFabric  @relation(fields: [materialId], references: [id])
+  @@unique([sampleChooseId, materialId])
+  @@index([materialId])
+  @@map("sample_choose_item")
+}
+
+model SampleIn {
+  id          String         @id @default(uuid()) @db.Uuid
+  documentNo  String         @unique @map("document_no") @db.VarChar(50)
+  remark      String?        @db.VarChar(500)
+  createdById String         @map("created_by_id") @db.Uuid
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  createdBy   UserAccount    @relation("sample_in_creator", fields: [createdById], references: [id])
+  items       SampleInItem[]
+  @@index([createdById, createdAt])
+  @@map("sample_in")
+}
+
+model SampleInItem {
+  id         String          @id @default(uuid()) @db.Uuid
+  sampleInId String          @map("sample_in_id") @db.Uuid
+  materialId String          @map("material_id") @db.Uuid
+  locationId String          @map("location_id") @db.Uuid
+  quantity   Int
+  createdAt  DateTime        @default(now()) @map("created_at")
+  sampleIn   SampleIn        @relation(fields: [sampleInId], references: [id], onDelete: Cascade)
+  material   MaterialFabric  @relation(fields: [materialId], references: [id])
+  location   SampleLocation  @relation(fields: [locationId], references: [id])
+  @@index([materialId, locationId])
+  @@map("sample_in_item")
+}
+
+model SampleOut {
+  id          String          @id @default(uuid()) @db.Uuid
+  documentNo  String          @unique @map("document_no") @db.VarChar(50)
+  remark      String?         @db.VarChar(500)
+  createdById String          @map("created_by_id") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  createdBy   UserAccount     @relation("sample_out_creator", fields: [createdById], references: [id])
+  items       SampleOutItem[]
+  @@index([createdById, createdAt])
+  @@map("sample_out")
+}
+
+model SampleOutItem {
+  id          String          @id @default(uuid()) @db.Uuid
+  sampleOutId String          @map("sample_out_id") @db.Uuid
+  materialId  String          @map("material_id") @db.Uuid
+  locationId  String          @map("location_id") @db.Uuid
+  quantity    Int
+  createdAt   DateTime        @default(now()) @map("created_at")
+  sampleOut   SampleOut       @relation(fields: [sampleOutId], references: [id], onDelete: Cascade)
+  material    MaterialFabric  @relation(fields: [materialId], references: [id])
+  location    SampleLocation  @relation(fields: [locationId], references: [id])
+  @@index([materialId, locationId])
+  @@map("sample_out_item")
+}
+
+model SampleStock {
+  id         String          @id @default(uuid()) @db.Uuid
+  materialId String          @map("material_id") @db.Uuid
+  locationId String          @map("location_id") @db.Uuid
+  quantity   Int             @default(0)
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+  material   MaterialFabric  @relation(fields: [materialId], references: [id])
+  location   SampleLocation  @relation(fields: [locationId], references: [id])
+  @@unique([materialId, locationId])
+  @@index([locationId])
+  @@map("sample_stock")
+}
+
+model OperationLog {
+  id         String       @id @default(uuid()) @db.Uuid
+  userId     String?      @map("user_id") @db.Uuid
+  action     String       @db.VarChar(100)
+  resource   String       @db.VarChar(100)
+  resourceId String?      @map("resource_id") @db.VarChar(100)
+  detail     Json?
+  ip         String?      @db.VarChar(64)
+  createdAt  DateTime     @default(now()) @map("created_at")
+  user       UserAccount? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([userId, createdAt])
+  @@index([resource, createdAt])
+  @@map("operation_log")
+}
+
+model DataDictionary {
+  id        String       @id @default(uuid()) @db.Uuid
+  type      String       @db.VarChar(50)
+  code      String       @db.VarChar(50)
+  label     String       @db.VarChar(100)
+  value     String?      @db.VarChar(255)
+  status    RecordStatus @default(ACTIVE)
+  sortOrder Int          @default(0) @map("sort_order")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  @@unique([type, code])
+  @@index([type, status])
+  @@map("data_dictionary")
+}

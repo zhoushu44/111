@@ -23,7 +23,7 @@ export default function DataTable<T>({ columns, data }: DataTableProps<T>) {
           </tr>
         </thead>
         <tbody>
-          {data.map((row, index) => (
+          {data.length === 0 ? <tr><td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-slate-400">暂无数据</td></tr> : data.map((row, index) => (
             <tr key={index} className="border-b border-slate-100 last:border-0 hover:bg-[#f8f4ec]">
               {columns.map((column) => (
                 <td key={column.title} className={`px-4 py-3 align-middle ${column.className ?? ''}`}>{column.render(row)}</td>

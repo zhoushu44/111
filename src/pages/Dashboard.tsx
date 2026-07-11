@@ -1,53 +1,46 @@
-import { ClipboardList, Printer, Shirt, Warehouse } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import PageHeader from '@/components/PageHeader'
-import { fabrics, sampleRecords } from '@/data/mock'
-
-const stats = [
-  { label: '面料资料', value: fabrics.length, icon: Shirt, tone: 'bg-[#123c5a]' },
-  { label: '本周选样', value: sampleRecords.length, icon: ClipboardList, tone: 'bg-[#1e8a7a]' },
-  { label: '库存总量', value: fabrics.reduce((sum, item) => sum + item.stockQty, 0), icon: Warehouse, tone: 'bg-[#c9944a]' },
-  { label: '待打印标签', value: 12, icon: Printer, tone: 'bg-slate-700' },
-]
+import { api } from '@/lib/api'
 
 export default function Dashboard() {
+  const [stats, setStats] = useState({ materials: 0, chooses: 0, stock: 0 })
+  const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    setLoading(true)
+    Promise.all([
+      api.get<{ total: number }>('/materials?pageSize=1'),
+      api.get<{ total: number }>('/sample-chooses?pageSize=1'),
+      // 后端返回 { list, total, page, pageSize, summary: { stockRecordCount, totalQuantity } }
+      api.get<{ total: number; summary: { stockRecordCount: number; totalQuantity: number } }>('/sample-stocks?pageSize=1'),
+    ]).then(([a, b, c]) => {
+      setStats({
+        materials: a.total,
+        chooses: b.total,
+        stock: c.summary.totalQuantity,
+      })
+    }).catch((e) => {
+      setMessage(e instanceof Error ? e.message : '加载统计数据失败')
+    }).finally(() => setLoading(false))
+  }, [])
+
   return (
     <div>
-      <PageHeader title="工作台" description="面料录入、客户选样、导出表格、标签打印的日常入口。" />
-      <div className="grid grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className={`mb-5 flex h-11 w-11 items-center justify-center rounded-xl text-white ${stat.tone}`}><Icon size={21} /></div>
-              <div className="text-3xl font-black text-slate-900">{stat.value}</div>
-              <div className="mt-1 text-sm text-slate-500">{stat.label}</div>
-            </div>
-          )
-        })}
-      </div>
-      <div className="mt-5 grid grid-cols-[1fr_1fr] gap-5">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 font-bold">快捷操作</h2>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {['新增面料资料', '客户选样管理', '打印标签', '导出选样 Excel'].map((item) => (
-              <button key={item} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold hover:border-[#1e8a7a] hover:bg-white">{item}</button>
-            ))}
+      <PageHeader title="工作台" description="实时业务数据概览。" />
+      {loading && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">加载中…</p>}
+      {message && <p className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">{message}</p>}
+      <div className="grid grid-cols-3 gap-4">
+        {([
+          ['面料资料', stats.materials],
+          ['选样单', stats.chooses],
+          ['库存总量', stats.stock],
+        ] as const).map(([label, value]) => (
+          <div key={label} className="rounded-2xl border border-slate-200 bg-white p-6">
+            <b className="text-3xl">{value}</b>
+            <p className="mt-1 text-sm text-slate-500">{label}</p>
           </div>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 font-bold">最近选样</h2>
-          <div className="space-y-3">
-            {sampleRecords.map((record) => (
-              <div key={record.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm">
-                <div>
-                  <div className="font-semibold">{record.orderNo}</div>
-                  <div className="text-xs text-slate-500">{record.customerName} · {record.itemCount} 款</div>
-                </div>
-                <span className="rounded-full bg-[#e8f5f2] px-3 py-1 text-xs font-semibold text-[#1e8a7a]">{record.status}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   )

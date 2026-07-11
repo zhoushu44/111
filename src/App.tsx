@@ -1,4 +1,5 @@
-import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from '@/components/AppLayout'
 import RequireRole from '@/components/RequireRole'
 import { useAuthStore } from '@/store/authStore'
@@ -9,40 +10,21 @@ import MaterialFabrics from '@/pages/MaterialFabrics'
 import MaterialQuery from '@/pages/MaterialQuery'
 import SampleChoose from '@/pages/SampleChoose'
 import SampleRecords from '@/pages/SampleRecords'
-import SimpleListPage from '@/pages/SimpleListPage'
-import { customers, fabrics, providers } from '@/data/mock'
+import SimpleListPage, { type Field } from '@/pages/SimpleListPage'
+import CategoryTree from '@/pages/CategoryTree'
+import StockOperation from '@/pages/StockOperation'
+import StockQuery from '@/pages/StockQuery'
+import StockTransactions from '@/pages/StockTransactions'
+import RolePermissions from '@/pages/RolePermissions'
+import UserManagement from '@/pages/UserManagement'
 
-function ProtectedLayout() {
-  const user = useAuthStore((state) => state.user)
-  if (!user) return <Navigate to="/login" replace />
-  return <AppLayout />
+const fields: Record<string, Field[]> = {
+  categories: [{ key: 'name', label: '类别名称' }, { key: 'parentId', label: '上级 ID' }, { key: 'sortOrder', label: '排序', transform: Number }],
+  partners: [{ key: 'code', label: '编码' }, { key: 'name', label: '名称' }, { key: 'contact', label: '联系人' }, { key: 'phone', label: '电话' }, { key: 'address', label: '地址' }],
+  locations: [{ key: 'code', label: '库位编码' }, { key: 'name', label: '库位名称' }],
+  dictionaries: [{ key: 'type', label: '类型' }, { key: 'code', label: '编码' }, { key: 'label', label: '标签' }, { key: 'value', label: '值' }, { key: 'sortOrder', label: '排序', transform: Number }],
+  users: [{ key: 'username', label: '用户名', readOnlyOnEdit: true }, { key: 'displayName', label: '姓名' }, { key: 'password', label: '密码', inputType: 'password', createOnly: true }, { key: 'role', label: '角色', type: 'select', options: [{ value: 'ADMIN', label: '管理员' }, { value: 'STAFF', label: '员工' }], display: (value) => typeof value === 'object' && value ? String((value as { code?: string }).code ?? '') : String(value ?? '') }],
 }
-
-export default function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route element={<ProtectedLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/materials/categories" element={<SimpleListPage title="面料类别维护" description="维护面料分类树，用于资料归类和查询筛选。" rows={[{ 类别编码: 'CT', 类别名称: '棉类面料', 上级类别: '/', 状态: '启用' }, { 类别编码: 'PL', 类别名称: '化纤面料', 上级类别: '/', 状态: '启用' }]} />} />
-          <Route path="/materials/fabrics" element={<MaterialFabrics />} />
-          <Route path="/partners/providers" element={<RequireRole roles={['admin']}><SimpleListPage title="供应商维护" description="维护供应商基础资料，仅管理员可见。" rows={providers.map((item) => ({ 编码: item.code, 供应商名称: item.name, 联系人: item.contact, 电话: item.phone, 地区: item.region, 状态: item.status }))} /></RequireRole>} />
-          <Route path="/partners/customers" element={<RequireRole roles={['admin']}><SimpleListPage title="客户资料维护" description="维护客户资料，用于客户选样和导出。" rows={customers.map((item) => ({ 编码: item.code, 客户名称: item.name, 联系人: item.contact, 地区: item.region, 状态: item.status }))} /></RequireRole>} />
-          <Route path="/samples/choose" element={<SampleChoose />} />
-          <Route path="/samples/choose-records" element={<SampleRecords />} />
-          <Route path="/samples/locations" element={<RequireRole roles={['admin']}><SimpleListPage title="样品库位维护" description="维护样品存放区域和库位编码。" rows={[{ 库位编码: 'A-01-03', 区域: 'A区', 说明: '棉类样品架', 状态: '启用' }, { 库位编码: 'B-02-11', 区域: 'B区', 说明: '化纤样品架', 状态: '启用' }]} /></RequireRole>} />
-          <Route path="/samples/inbound" element={<SimpleListPage title="样品入库" description="记录样品入库流水并增加库存。" rows={fabrics.map((item) => ({ ItemNo: item.itemNo, 面料名称: item.name, 入库数量: 20, 库位: item.location, 状态: '已入库' }))} />} />
-          <Route path="/samples/outbound" element={<SimpleListPage title="样品出库" description="记录样品出库流水并减少库存。" rows={fabrics.map((item) => ({ ItemNo: item.itemNo, 面料名称: item.name, 出库数量: 2, 库位: item.location, 状态: '已出库' }))} />} />
-          <Route path="/samples/stock" element={<SimpleListPage title="样品库存查询" description="按面料、库位、类别查询当前库存。" rows={fabrics.map((item) => ({ ItemNo: item.itemNo, 面料名称: item.name, 类别: item.category, 库位: item.location, 库存: item.stockQty }))} action="导出库存" />} />
-          <Route path="/info/material-query" element={<MaterialQuery />} />
-          <Route path="/print/labels" element={<LabelPrint />} />
-          <Route path="/system/users" element={<RequireRole roles={['admin']}><SimpleListPage title="用户管理" description="维护账号、角色、启用状态和密码重置。" rows={[{ 用户名: 'admin', 姓名: '管理员', 角色: '管理员', 状态: '启用' }, { 用户名: 'staff', 姓名: '业务员工', 角色: '员工', 状态: '启用' }]} /></RequireRole>} />
-          <Route path="/system/dictionaries" element={<RequireRole roles={['admin']}><SimpleListPage title="数据字典" description="维护单位、地区、客户类型、出入库类型等基础字典。" rows={[{ 字典类型: '单位', 字典值: '米', 状态: '启用' }, { 字典类型: '地区', 字典值: '香港', 状态: '启用' }, { 字典类型: '客户类型', 字典值: '样衣公司', 状态: '启用' }]} /></RequireRole>} />
-        </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </Router>
-  )
-}
+function Protected() { const user = useAuthStore((state) => state.user), loading = useAuthStore((state) => state.loading); if (loading) return <div className="p-10 text-center">正在校验登录状态…</div>; return user ? <AppLayout /> : <Navigate to="/login" replace /> }
+function Bootstrap() { const init = useAuthStore((state) => state.initialize); useEffect(() => { void init() }, [init]); return <Routes><Route path="/login" element={<Login />} /><Route element={<Protected />}><Route path="/dashboard" element={<Dashboard />} /><Route path="/materials/categories" element={<CategoryTree />} /><Route path="/materials/fabrics" element={<MaterialFabrics />} /><Route path="/partners/providers" element={<RequireRole roles={['admin']}><SimpleListPage title="供应商维护" description="通过 API 维护供应商。" endpoint="/providers" fields={fields.partners} /></RequireRole>} /><Route path="/partners/customers" element={<RequireRole roles={['admin']}><SimpleListPage title="客户资料维护" description="通过 API 维护客户。" endpoint="/customers" fields={fields.partners} /></RequireRole>} /><Route path="/samples/choose" element={<SampleChoose />} /><Route path="/samples/choose-records" element={<SampleRecords />} /><Route path="/samples/locations" element={<SimpleListPage title="样品库位维护" description="通过 API 维护库位。" endpoint="/sample-locations" fields={fields.locations} />} /><Route path="/samples/inbound" element={<StockOperation type="inbound" />} /><Route path="/samples/outbound" element={<StockOperation type="outbound" />} /><Route path="/samples/stock" element={<StockQuery />} /><Route path="/samples/transactions" element={<StockTransactions />} /><Route path="/info/material-query" element={<MaterialQuery />} /><Route path="/print/labels" element={<LabelPrint />} /><Route path="/system/users" element={<RequireRole roles={['admin']}><UserManagement /></RequireRole>} /><Route path="/system/roles" element={<RequireRole roles={['admin']}><RolePermissions /></RequireRole>} /><Route path="/system/dictionaries" element={<RequireRole roles={['admin']}><SimpleListPage title="数据字典" description="通过 API 维护数据字典。" endpoint="/dictionaries" fields={fields.dictionaries} /></RequireRole>} /><Route path="/system/logs" element={<RequireRole roles={['admin']}><SimpleListPage title="操作日志" description="操作日志来自 API。" endpoint="/system/operation-logs" fields={[{ key: 'action', label: '操作' }, { key: 'resource', label: '资源' }, { key: 'user', label: '操作人', display: (value) => typeof value === 'object' && value ? String((value as { displayName?: string; username?: string }).displayName || (value as { username?: string }).username || '-') : '-' }, { key: 'detail', label: '详情', display: (value) => value ? JSON.stringify(value) : '-' }, { key: 'createdAt', label: '时间', display: (value) => value ? new Date(String(value)).toLocaleString() : '-' }]} readOnly /></RequireRole>} /><Route path="/" element={<Navigate to="/dashboard" replace />} /></Route><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes> }
+export default function App() { return <Router><Bootstrap /></Router> }

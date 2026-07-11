@@ -1,194 +1,71 @@
-import { useMemo, useState } from 'react'
-import { Printer, Search, X } from 'lucide-react'
+import { ChangeEvent, useEffect, useState } from 'react'
+import { Download, ImagePlus, Pencil, Power, Printer } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import DataTable from '@/components/DataTable'
 import PageHeader from '@/components/PageHeader'
-import { fabrics as initialFabrics } from '@/data/mock'
+import { api, assetUrl, downloadBlob } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import type { MaterialFabric } from '@/types'
 
-type FabricForm = Pick<MaterialFabric, 'itemNo' | 'name' | 'category' | 'composition' | 'construction' | 'width' | 'weight' | 'color' | 'provider' | 'location'> & {
-  costPrice: string
-  stockQty: string
-}
-
-const emptyForm: FabricForm = {
-  itemNo: '',
-  name: '',
-  category: '棉类面料',
-  composition: '',
-  construction: '',
-  width: '',
-  weight: '',
-  color: '',
-  provider: '',
-  location: '',
-  costPrice: '',
-  stockQty: '',
-}
+type Material = { id: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; construction?: string | null; width?: string | null; weight?: string | null; color?: string | null; unit: string; remark?: string | null; labelRemark?: string | null; categoryId: string; category: { name: string }; provider?: { id: string; name: string } | null; providerId?: string | null; cost?: number | null; status: 'ACTIVE' | 'DISABLED'; images: { url: string }[] }
+type Option = { id: string; name: string }
+type Draft = { itemNo: string; name: string; categoryId: string; specification: string; composition: string; construction: string; width: string; weight: string; color: string; unit: string; remark: string; labelRemark: string; providerId: string; cost: string }
+const emptyDraft: Draft = { itemNo: '', name: '', categoryId: '', specification: '', composition: '', construction: '', width: '', weight: '', color: '', unit: '米', remark: '', labelRemark: '', providerId: '', cost: '' }
 
 export default function MaterialFabrics() {
-  const role = useAuthStore((state) => state.user?.role)
-  const isAdmin = role === 'admin'
-  const [items, setItems] = useState<MaterialFabric[]>(initialFabrics)
-  const [keyword, setKeyword] = useState('')
-  const [category, setCategory] = useState('全部类别')
-  const [selected, setSelected] = useState<MaterialFabric | null>(null)
-  const [editing, setEditing] = useState<MaterialFabric | null>(null)
-  const [formOpen, setFormOpen] = useState(false)
-  const [form, setForm] = useState<FabricForm>(emptyForm)
+  const nav = useNavigate()
+  const admin = useAuthStore((state) => state.user?.role === 'admin')
+  const [list, setList] = useState<Material[]>([])
+  const [categories, setCategories] = useState<Option[]>([])
+  const [providers, setProviders] = useState<Option[]>([])
+  const [query, setQuery] = useState({ keyword: '', categoryId: '', status: '' })
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
   const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState<Material | null>(null)
+  const [draft, setDraft] = useState<Draft | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [includeImage, setIncludeImage] = useState(false)
+  const pageSize = 20
 
-  const categories = ['全部类别', ...Array.from(new Set(items.map((item) => item.category)))]
-  const filtered = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase()
-    return items.filter((item) => {
-      const matchKeyword = !normalized || [item.itemNo, item.name, item.composition, item.color].some((value) => value.toLowerCase().includes(normalized))
-      const matchCategory = category === '全部类别' || item.category === category
-      return matchKeyword && matchCategory
-    })
-  }, [category, items, keyword])
-
-  const openCreate = () => {
-    setEditing(null)
-    setForm(emptyForm)
-    setFormOpen(true)
+  const load = async (nextPage = page) => {
+    setLoading(true); setMessage('')
+    try {
+      const params = new URLSearchParams({ page: String(nextPage), pageSize: String(pageSize) })
+      Object.entries(query).forEach(([key, value]) => { if (value) params.set(key, value) })
+      const requests: [Promise<{ list: Material[]; total: number }>, Promise<{ list: Option[] }>, Promise<{ list: Option[] }> | null] = [api.get(`/materials?${params}`), api.get('/categories?pageSize=100&status=ACTIVE'), admin ? api.get('/providers?pageSize=100&status=ACTIVE') : null]
+      const [materials, categoryResult, providerResult] = await Promise.all(requests)
+      setList(materials.list); setTotal(materials.total); setCategories(categoryResult.list); setProviders(providerResult?.list ?? []); setPage(nextPage)
+    } catch (error) { setMessage(error instanceof Error ? error.message : '加载失败') } finally { setLoading(false) }
   }
+  useEffect(() => { void load(1) }, [admin])
 
-  const openEdit = (item: MaterialFabric) => {
-    setEditing(item)
-    setForm({
-      itemNo: item.itemNo,
-      name: item.name,
-      category: item.category,
-      composition: item.composition,
-      construction: item.construction,
-      width: item.width,
-      weight: item.weight,
-      color: item.color,
-      provider: item.provider,
-      location: item.location,
-      costPrice: String(item.costPrice),
-      stockQty: String(item.stockQty),
-    })
-    setFormOpen(true)
+  const toggle = async (row: Material) => { try { await api.post(`/materials/${row.id}/toggle`, { status: row.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE' }); await load() } catch (error) { setMessage(error instanceof Error ? error.message : '操作失败') } }
+  const upload = async (id: string, event: ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; if (!file) return; try { const form = new FormData(); form.append('image', file); await api.post(`/materials/${id}/images`, form); await load() } catch (error) { setMessage(error instanceof Error ? error.message : '上传失败') } finally { event.target.value = '' } }
+  const openCreate = () => { setEditing(null); setDraft(emptyDraft); setMessage('') }
+  const openEdit = (row: Material) => { setEditing(row); setDraft({ itemNo: row.itemNo, name: row.name, categoryId: row.categoryId, specification: row.specification ?? '', composition: row.composition ?? '', construction: row.construction ?? '', width: row.width ?? '', weight: row.weight ?? '', color: row.color ?? '', unit: row.unit, remark: row.remark ?? '', labelRemark: row.labelRemark ?? '', providerId: row.providerId ?? row.provider?.id ?? '', cost: row.cost == null ? '' : String(row.cost) }); setMessage('') }
+  const save = async () => {
+    if (!draft) return
+    if (!draft.itemNo.trim() || !draft.name.trim() || !draft.categoryId || !draft.unit.trim()) { setMessage('请填写 Item No.、名称、类别和单位'); return }
+    setSaving(true)
+    try {
+      const nullable = (value: string) => value.trim() || null
+      const payload: Record<string, unknown> = { itemNo: draft.itemNo.trim(), name: draft.name.trim(), categoryId: draft.categoryId, specification: nullable(draft.specification), composition: nullable(draft.composition), construction: nullable(draft.construction), width: nullable(draft.width), weight: nullable(draft.weight), color: nullable(draft.color), unit: draft.unit.trim(), remark: nullable(draft.remark), labelRemark: nullable(draft.labelRemark) }
+      if (admin) { payload.providerId = draft.providerId || null; payload.cost = draft.cost.trim() ? Number(draft.cost) : null }
+      await (editing ? api.patch(`/materials/${editing.id}`, payload) : api.post('/materials', payload))
+      setDraft(null); setEditing(null); await load(editing ? page : 1)
+    } catch (error) { setMessage(error instanceof Error ? error.message : '保存失败') } finally { setSaving(false) }
   }
+  const exportExcel = async () => { try { const params = new URLSearchParams(); Object.entries(query).forEach(([key, value]) => { if (value) params.set(key, value) }); if (includeImage) params.set('includeImage', 'true'); const blob = await api.download(`/exports/materials?${params}`); downloadBlob(blob, '面料资料.xlsx'); setExporting(false) } catch (error) { setMessage(error instanceof Error ? error.message : '导出失败') } }
 
-  const closeForm = () => {
-    setEditing(null)
-    setForm(emptyForm)
-  }
-
-  const saveForm = () => {
-    if (!form.itemNo.trim() || !form.name.trim()) {
-      setMessage('Item No. 和面料名称必填')
-      return
-    }
-
-    const exists = items.some((item) => item.itemNo === form.itemNo && item.id !== editing?.id)
-    if (exists) {
-      setMessage('Item No. 已存在')
-      return
-    }
-
-    const nextItem: MaterialFabric = {
-      id: editing?.id ?? `m${Date.now()}`,
-      itemNo: form.itemNo,
-      name: form.name,
-      category: form.category,
-      composition: form.composition,
-      construction: form.construction,
-      width: form.width,
-      weight: form.weight,
-      color: form.color,
-      costPrice: Number(form.costPrice || 0),
-      provider: form.provider,
-      location: form.location,
-      stockQty: Number(form.stockQty || 0),
-      image: editing?.image ?? initialFabrics[0].image,
-      enabled: true,
-    }
-
-    setItems((list) => editing ? list.map((item) => item.id === editing.id ? nextItem : item) : [nextItem, ...list])
-    setMessage(editing ? '面料资料已更新' : '面料资料已新增')
-    closeForm()
-  }
-
-  const columns = [
-    { title: '图片', render: (row: MaterialFabric) => <img src={row.image} className="h-12 w-12 rounded-lg object-cover" /> },
-    { title: 'Item No.', render: (row: MaterialFabric) => <button onClick={() => setSelected(row)} className="font-semibold text-[#123c5a] hover:underline">{row.itemNo}</button> },
-    { title: '面料名称', render: (row: MaterialFabric) => row.name },
-    { title: '类别', render: (row: MaterialFabric) => row.category },
-    { title: '成分', render: (row: MaterialFabric) => row.composition },
-    { title: '规格', render: (row: MaterialFabric) => `${row.construction} / ${row.width} / ${row.weight}` },
-    ...(isAdmin ? [{ title: '供应商/成本', render: (row: MaterialFabric) => <div>{row.provider}<div className="text-xs text-slate-500">¥{row.costPrice}</div></div> }] : []),
-    { title: '库位/库存', render: (row: MaterialFabric) => <span>{row.location} · {row.stockQty}</span> },
-    { title: '操作', render: (row: MaterialFabric) => <div className="space-x-2 text-[#1e8a7a]"><button onClick={() => setSelected(row)}>详情</button><button onClick={() => openEdit(row)}>编辑</button><button>打印</button></div> },
-  ]
-
-  return (
-    <div>
-      <PageHeader title="面料资料维护" description="维护 Item No.、成分、组织、幅宽、克重、图片、库存和标签信息。" action="新增面料" />
-      <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap gap-3">
-          <div className="relative min-w-80">
-            <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-            <input value={keyword} onChange={(event) => setKeyword(event.target.value)} className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-[#1e8a7a]" placeholder="输入 Item No. / 面料名称 / 成分 / 颜色" />
-          </div>
-          <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#1e8a7a]">
-            {categories.map((item) => <option key={item}>{item}</option>)}
-          </select>
-          <button onClick={() => { setKeyword(''); setCategory('全部类别') }} className="rounded-lg border border-slate-200 px-5 text-sm font-semibold text-slate-600 hover:bg-slate-50">重置</button>
-          <button onClick={openCreate} className="rounded-lg bg-[#1e8a7a] px-5 text-sm font-semibold text-white hover:bg-[#166f63]">新增面料</button>
-          <div className="ml-auto flex items-center text-sm text-slate-500">共 {filtered.length} 条 {message ? <span className="ml-3 text-[#1e8a7a]">{message}</span> : null}</div>
-        </div>
-      </div>
-      <DataTable columns={columns} data={filtered} />
-
-      {selected ? (
-        <div className="fixed inset-0 z-30 bg-slate-900/35" onClick={() => setSelected(null)}>
-          <aside className="absolute right-0 top-0 h-full w-[460px] overflow-y-auto bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-            <div className="mb-5 flex items-start justify-between">
-              <div><h2 className="text-xl font-bold text-slate-900">{selected.itemNo}</h2><p className="text-sm text-slate-500">{selected.name}</p></div>
-              <button onClick={() => setSelected(null)} className="rounded-lg p-2 hover:bg-slate-100"><X size={18} /></button>
-            </div>
-            <img src={selected.image} className="mb-5 h-56 w-full rounded-2xl object-cover" />
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              {[
-                ['类别', selected.category], ['成分', selected.composition], ['组织', selected.construction], ['幅宽', selected.width], ['克重', selected.weight], ['颜色', selected.color], ['库位', selected.location], ['库存', selected.stockQty],
-                ...(isAdmin ? [['供应商', selected.provider], ['成本价', `¥${selected.costPrice}`]] : []),
-              ].map(([label, value]) => <div key={label} className="rounded-xl bg-slate-50 p-3"><div className="text-xs text-slate-500">{label}</div><div className="mt-1 font-semibold text-slate-800">{value}</div></div>)}
-            </div>
-            <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#123c5a] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0e314b]"><Printer size={17} />打印标签</button>
-          </aside>
-        </div>
-      ) : null}
-
-      {formOpen ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-6">
-          <div className="w-[760px] rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <div><h2 className="text-xl font-bold">{editing ? '编辑面料资料' : '新增面料资料'}</h2><p className="text-sm text-slate-500">Item No. 和面料名称为必填项</p></div>
-              <button onClick={closeForm} className="rounded-lg p-2 hover:bg-slate-100"><X size={18} /></button>
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              {[
-                ['itemNo', 'Item No. *'], ['name', '面料名称 *'], ['category', '类别'], ['composition', '成分'], ['construction', '组织'], ['width', '幅宽'], ['weight', '克重'], ['color', '颜色'], ['location', '库位'], ['stockQty', '库存数量'],
-                ...(isAdmin ? [['provider', '供应商'], ['costPrice', '成本价']] : []),
-              ].map(([key, label]) => (
-                <label key={key} className="block">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500">{label}</span>
-                  <input value={String(form[key as keyof FabricForm])} onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))} className="h-10 w-full rounded-lg border border-slate-200 px-3 outline-none focus:border-[#1e8a7a]" />
-                </label>
-              ))}
-            </div>
-            <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">图片上传模拟：当前 Demo 使用默认面料图片，后续接入真实上传接口。</div>
-            <div className="mt-6 flex justify-end gap-3">
-              <button onClick={closeForm} className="rounded-lg border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">取消</button>
-              <button onClick={saveForm} className="rounded-lg bg-[#123c5a] px-5 py-2 text-sm font-semibold text-white hover:bg-[#0e314b]">保存</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  )
+  return <div>
+    <PageHeader title="面料资料维护" description="维护面料资料、状态和图片。" action="新增面料" onAction={openCreate} />
+    <div className="mb-4 flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white p-4"><input className="h-10 rounded-lg border border-slate-200 px-3 text-sm" placeholder="Item No. 或名称" value={query.keyword} onChange={(event) => setQuery({ ...query, keyword: event.target.value })} onKeyDown={(event) => event.key === 'Enter' && void load(1)} /><select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.categoryId} onChange={(event) => setQuery({ ...query, categoryId: event.target.value })}><option value="">全部类别</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.status} onChange={(event) => setQuery({ ...query, status: event.target.value })}><option value="">全部状态</option><option value="ACTIVE">启用</option><option value="DISABLED">停用</option></select><button className="rounded-lg bg-[#123c5a] px-5 text-sm font-semibold text-white" onClick={() => void load(1)}>查询</button><button className="flex items-center gap-1 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600" onClick={() => setExporting(true)}><Download size={16} />导出 Excel</button></div>
+    {loading && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">加载中…</p>}{message && <p className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">{message}</p>}
+    <DataTable data={list} columns={[{ title: '图片', render: (row) => row.images[0] ? <img className="h-12 w-12 object-cover" src={assetUrl(row.images[0].url)} alt="面料" /> : '-' }, { title: 'Item No.', render: (row) => row.itemNo }, { title: '名称', render: (row) => row.name }, { title: '类别', render: (row) => row.category.name }, { title: '状态', render: (row) => row.status === 'ACTIVE' ? '启用' : '停用' }, ...(admin ? [{ title: '供应商 / 成本', render: (row: Material) => `${row.provider?.name ?? '-'} / ¥${row.cost ?? '-'}` }] : []), { title: '操作', render: (row) => <div className="flex gap-2"><button title="编辑" onClick={() => openEdit(row)}><Pencil size={16} /></button><label title="上传图片" className="cursor-pointer"><ImagePlus size={16} /><input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" disabled={row.status !== 'ACTIVE'} onChange={(event) => void upload(row.id, event)} /></label><button title="标签打印" disabled={row.status !== 'ACTIVE'} onClick={() => nav(`/print/labels?materialIds=${row.id}`)}><Printer size={16} /></button><button title={row.status === 'ACTIVE' ? '停用' : '启用'} onClick={() => void toggle(row)}><Power size={16} /></button></div> }]} />
+    <div className="mt-4 flex justify-end gap-3 text-sm"><span>共 {total} 条，第 {page} 页</span><button disabled={page <= 1 || loading} onClick={() => void load(page - 1)}>上一页</button><button disabled={page * pageSize >= total || loading} onClick={() => void load(page + 1)}>下一页</button></div>
+    {draft && <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/40 p-6"><div className="mx-auto max-w-3xl rounded-2xl bg-white p-6"><h2 className="mb-4 text-lg font-bold">{editing ? '编辑面料' : '新增面料'}</h2><div className="grid gap-3 md:grid-cols-2">{([['itemNo', 'Item No.'], ['name', '名称'], ['specification', '规格'], ['composition', '成分'], ['construction', '组织'], ['width', '幅宽'], ['weight', '克重'], ['color', '颜色'], ['unit', '单位'], ['remark', '备注'], ['labelRemark', '标签备注']] as const).map(([key, label]) => <label key={key} className="block text-sm"><span>{label}{['itemNo', 'name', 'unit'].includes(key) ? ' *' : ''}</span><input className="mt-1 w-full rounded-lg border border-slate-200 p-2" value={draft[key]} onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} /></label>)}<label className="block text-sm"><span>类别 *</span><select className="mt-1 w-full rounded-lg border border-slate-200 p-2" value={draft.categoryId} onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}><option value="">请选择类别</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{admin && <><label className="block text-sm"><span>供应商</span><select className="mt-1 w-full rounded-lg border border-slate-200 p-2" value={draft.providerId} onChange={(event) => setDraft({ ...draft, providerId: event.target.value })}><option value="">未设置</option>{providers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="block text-sm"><span>成本</span><input min="0" step="0.01" type="number" className="mt-1 w-full rounded-lg border border-slate-200 p-2" value={draft.cost} onChange={(event) => setDraft({ ...draft, cost: event.target.value })} /></label></> }</div>{editing?.images.length ? <div className="mt-4"><p className="mb-2 text-sm">已有图片</p><div className="flex flex-wrap gap-2">{editing.images.map((image) => <img key={image.url} className="h-20 w-20 object-cover" src={assetUrl(image.url)} alt="面料" />)}</div></div> : null}{!editing && <p className="mt-4 text-sm text-slate-500">保存后可通过列表中的上传图片按钮添加图片。</p>}<div className="mt-5 flex gap-3"><button className="rounded-lg border border-slate-200 px-4 py-2 text-sm" onClick={() => setDraft(null)}>取消</button><button disabled={saving} className="rounded-lg bg-[#123c5a] px-4 py-2 text-sm text-white disabled:opacity-50" onClick={() => void save()}>{saving ? '保存中…' : '保存'}</button></div></div></div>}
+    {exporting && <div className="fixed inset-0 z-40 bg-slate-900/40 p-6"><div className="mx-auto max-w-md rounded-2xl bg-white p-6"><h2 className="mb-4 text-lg font-bold">导出面料资料</h2><label className="block text-sm"><input type="checkbox" checked={includeImage} onChange={(event) => setIncludeImage(event.target.checked)} /> 包含图片</label><div className="mt-5 flex gap-3"><button className="rounded-lg border border-slate-200 px-4 py-2 text-sm" onClick={() => setExporting(false)}>取消</button><button className="rounded-lg bg-[#123c5a] px-4 py-2 text-sm text-white" onClick={() => void exportExcel()}>下载 Excel</button></div></div></div>}
+  </div>
 }

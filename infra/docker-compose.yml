@@ -1,0 +1,80 @@
+services:
+  api:
+    build:
+      context: ../api
+      target: production
+    env_file:
+      - ../api/.env
+    volumes:
+      - upload_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [erp]
+
+  migrate:
+    build:
+      context: ../api
+      target: build
+    command: npx prisma migrate deploy
+    env_file:
+      - ../api/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: [migrate]
+    restart: "no"
+    networks: [erp]
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: fabric_erp
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp -d fabric_erp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks: [erp]
+
+  nginx:
+    image: nginx:1.27-alpine
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in infra/.env}
+      NGINX_ENVSUBST_FILTER: DOMAIN
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/templates/default.conf.template:ro
+      - ../dist:/usr/share/nginx/html:ro
+      - certbot_www:/var/www/certbot:ro
+      - letsencrypt:/etc/letsencrypt:ro
+    depends_on: [api]
+    restart: unless-stopped
+    networks: [erp]
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles: [certbot]
+    ports:
+      - "80:80"
+    volumes:
+      - certbot_www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    restart: "no"
+
+networks:
+  erp:
+
+volumes:
+  postgres_data:
+  upload_data:
+  certbot_www:
+  letsencrypt:
