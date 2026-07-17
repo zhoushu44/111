@@ -46,9 +46,6 @@ async function main() {
     prisma.customer.upsert({
       where: { code: 'C001' }, update: { name: '上海示例客户' }, create: { code: 'C001', name: '上海示例客户', contact: '李女士', phone: '13900000000' },
     }),
-    prisma.sampleLocation.upsert({
-      where: { code: 'A-01' }, update: { name: '样品库 A-01' }, create: { code: 'A-01', name: '样品库 A-01' },
-    }),
     prisma.materialFabric.upsert({
       where: { itemNo: 'MQ-0001' },
       update: { name: '全棉针织面料', categoryId: category.id, providerId: provider.id },

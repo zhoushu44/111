@@ -3,7 +3,7 @@ import PageHeader from '@/components/PageHeader'
 import { api } from '@/lib/api'
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ materials: 0, chooses: 0, stock: 0 })
+  const [stats, setStats] = useState({ materials: 0, chooses: 0 })
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
 
@@ -12,13 +12,10 @@ export default function Dashboard() {
     Promise.all([
       api.get<{ total: number }>('/materials?pageSize=1'),
       api.get<{ total: number }>('/sample-chooses?pageSize=1'),
-      // 后端返回 { list, total, page, pageSize, summary: { stockRecordCount, totalQuantity } }
-      api.get<{ total: number; summary: { stockRecordCount: number; totalQuantity: number } }>('/sample-stocks?pageSize=1'),
-    ]).then(([a, b, c]) => {
+    ]).then(([a, b]) => {
       setStats({
         materials: a.total,
         chooses: b.total,
-        stock: c.summary.totalQuantity,
       })
     }).catch((e) => {
       setMessage(e instanceof Error ? e.message : '加载统计数据失败')
@@ -30,11 +27,10 @@ export default function Dashboard() {
       <PageHeader title="工作台" description="实时业务数据概览。" />
       {loading && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">加载中…</p>}
       {message && <p className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">{message}</p>}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {([
           ['面料资料', stats.materials],
           ['选样单', stats.chooses],
-          ['库存总量', stats.stock],
         ] as const).map(([label, value]) => (
           <div key={label} className="rounded-2xl border border-slate-200 bg-white p-6">
             <b className="text-3xl">{value}</b>

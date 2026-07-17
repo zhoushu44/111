@@ -6,8 +6,8 @@ import { authenticate, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 const roles = [
-  { code: RoleCode.ADMIN, name: '管理员', permissions: ['dashboard', 'materials.categories', 'materials.fabrics', 'partners.providers', 'partners.customers', 'samples.choose', 'samples.records', 'samples.locations', 'samples.inbound', 'samples.outbound', 'samples.stock', 'samples.transactions', 'info.material-query', 'print.labels', 'system.users', 'system.roles', 'system.dictionaries', 'system.logs'] },
-  { code: RoleCode.STAFF, name: '员工', permissions: ['dashboard', 'materials.categories', 'materials.fabrics', 'samples.choose', 'samples.records', 'samples.inbound', 'samples.outbound', 'samples.stock', 'samples.transactions', 'info.material-query', 'print.labels'] },
+  { code: RoleCode.ADMIN, name: '管理员', permissions: ['dashboard', 'materials.categories', 'materials.fabrics', 'partners.providers', 'partners.customers', 'samples.choose', 'samples.records', 'info.material-query', 'print.labels', 'system.users', 'system.roles', 'system.dictionaries', 'system.logs'] },
+  { code: RoleCode.STAFF, name: '员工', permissions: ['dashboard', 'materials.categories', 'materials.fabrics', 'samples.choose', 'samples.records', 'info.material-query', 'print.labels'] },
 ] as const;
 router.use(authenticate, requireRole(RoleCode.ADMIN));
 

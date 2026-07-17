@@ -6,7 +6,7 @@ import PageHeader from '@/components/PageHeader'
 import { api, assetUrl, downloadBlob } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 
-type Material = { id: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; construction?: string | null; width?: string | null; weight?: string | null; color?: string | null; unit: string; remark?: string | null; labelRemark?: string | null; categoryId: string; category: { name: string }; provider?: { id: string; name: string } | null; providerId?: string | null; cost?: number | null; status: 'ACTIVE' | 'DISABLED'; images: { url: string }[] }
+type Material = { id: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; construction?: string | null; width?: string | null; weight?: string | null; color?: string | null; unit: string; remark?: string | null; labelRemark?: string | null; categoryId: string; category: { name: string }; provider?: { id: string; name: string } | null; providerId?: string | null; cost?: number | null; status: 'ACTIVE' | 'DISABLED'; images: { id: string; url: string }[] }
 type Option = { id: string; name: string }
 type Draft = { itemNo: string; name: string; categoryId: string; specification: string; composition: string; construction: string; width: string; weight: string; color: string; unit: string; remark: string; labelRemark: string; providerId: string; cost: string }
 const emptyDraft: Draft = { itemNo: '', name: '', categoryId: '', specification: '', composition: '', construction: '', width: '', weight: '', color: '', unit: '米', remark: '', labelRemark: '', providerId: '', cost: '' }

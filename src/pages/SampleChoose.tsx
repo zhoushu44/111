@@ -19,6 +19,9 @@ export default function SampleChoose() {
   const [customerId, setCustomerId] = useState('')
   const [code, setCode] = useState(params.get('item') ?? '')
   const [items, setItems] = useState<Selected[]>([])
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerKeyword, setPickerKeyword] = useState('')
+  const [pickedIds, setPickedIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
@@ -54,6 +57,16 @@ export default function SampleChoose() {
     setCode('')
     setMessage('')
   }
+  const addPicked = () => {
+    const selected = materials.filter((material) => pickedIds.includes(material.id))
+    if (!selected.length) return setMessage('请至少选择一条面料')
+    setItems((current) => {
+      const existing = new Map(current.map((item) => [item.id, item]))
+      selected.forEach((material) => { const item = existing.get(material.id); existing.set(material.id, item ? { ...item, quantity: item.quantity + 1 } : { ...material, quantity: 1, remark: '' }) })
+      return [...existing.values()]
+    })
+    setPickedIds([]); setPickerKeyword(''); setPickerOpen(false); setMessage('')
+  }
 
   const save = async () => {
     if (!customerId) return setMessage('当前没有可选客户，请先维护并启用客户资料')
@@ -85,7 +98,7 @@ export default function SampleChoose() {
       <label>Item No.
         <input className="ml-2 border p-2" value={code} onChange={(event) => setCode(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && add()} placeholder="扫码/输入 Item No." />
       </label>
-      <button onClick={add}>添加面料</button>
+      <button onClick={add}>添加面料</button><button onClick={() => setPickerOpen(true)}>查询多选面料</button>
       <button disabled={!items.length} onClick={() => navigate(labelUrl)}>预览/标签</button>
       <button className="bg-[#123c5a] px-4 py-2 text-white disabled:opacity-50" disabled={saving} onClick={() => void save()}>{saving ? '保存中…' : '保存选样'}</button>
     </div>
@@ -101,6 +114,7 @@ export default function SampleChoose() {
       { title: '备注', render: (row) => <input value={row.remark} onChange={(event) => setItems((current) => current.map((item) => item.id === row.id ? { ...item, remark: event.target.value } : item))} /> },
       { title: '操作', render: (row) => <button onClick={() => setItems((current) => current.filter((item) => item.id !== row.id))}>删除</button> },
     ]} />
+    {pickerOpen && <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/40 p-6"><div className="mx-auto max-w-3xl rounded-2xl bg-white p-6"><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-bold">选择面料</h2><button onClick={() => setPickerOpen(false)}>关闭</button></div><input className="mb-4 w-full rounded-lg border border-slate-200 p-2" autoFocus placeholder="按 Item No.、名称或规格查询" value={pickerKeyword} onChange={(event) => setPickerKeyword(event.target.value)} /> <div className="max-h-96 overflow-auto rounded-lg border border-slate-200">{materials.filter((material) => `${material.itemNo} ${material.name} ${material.specification ?? ''}`.toLowerCase().includes(pickerKeyword.trim().toLowerCase())).map((material) => <label key={material.id} className="flex cursor-pointer items-center gap-3 border-b border-slate-100 p-3"><input type="checkbox" checked={pickedIds.includes(material.id)} onChange={(event) => setPickedIds((current) => event.target.checked ? [...current, material.id] : current.filter((id) => id !== material.id))} /><span className="font-medium">{material.itemNo}</span><span>{material.name}</span><span className="text-slate-500">{material.specification || '/'}</span></label>)}</div><div className="mt-5 flex justify-end gap-3"><button className="rounded-lg border border-slate-200 px-4 py-2" onClick={() => setPickerOpen(false)}>取消</button><button className="rounded-lg bg-[#123c5a] px-4 py-2 text-white" onClick={addPicked}>加入选样清单</button></div></div></div>}
     {admin && <p className="mt-3 text-xs text-slate-500">选样导出时可选择包含规格、成本和图片。</p>}
   </div>
 }

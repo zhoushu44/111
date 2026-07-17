@@ -50,8 +50,6 @@ model UserAccount {
   role         Role          @relation(fields: [roleId], references: [id])
   sessions     UserSession[]
   sampleChooses SampleChoose[] @relation("sample_choose_creator")
-  sampleIns    SampleIn[]    @relation("sample_in_creator")
-  sampleOuts   SampleOut[]   @relation("sample_out_creator")
   operationLogs OperationLog[]
   @@index([roleId])
   @@map("user_account")
@@ -116,19 +114,6 @@ model Customer {
   @@map("customer")
 }
 
-model SampleLocation {
-  id        String        @id @default(uuid()) @db.Uuid
-  code      String        @unique @db.VarChar(50)
-  name      String        @db.VarChar(100)
-  status    RecordStatus  @default(ACTIVE)
-  createdAt DateTime      @default(now()) @map("created_at")
-  updatedAt DateTime      @updatedAt @map("updated_at")
-  stocks    SampleStock[]
-  sampleInItems SampleInItem[]
-  sampleOutItems SampleOutItem[]
-  @@map("sample_location")
-}
-
 model MaterialFabric {
   id          String            @id @default(uuid()) @db.Uuid
   itemNo      String            @unique @map("item_no") @db.VarChar(100)
@@ -152,9 +137,6 @@ model MaterialFabric {
   provider    Provider?         @relation(fields: [providerId], references: [id])
   images      MaterialImage[]
   chooseItems SampleChooseItem[]
-  sampleInItems SampleInItem[]
-  sampleOutItems SampleOutItem[]
-  stocks      SampleStock[]
   @@index([name])
   @@index([categoryId])
   @@index([providerId])
@@ -207,73 +189,6 @@ model SampleChooseItem {
   @@unique([sampleChooseId, materialId])
   @@index([materialId])
   @@map("sample_choose_item")
-}
-
-model SampleIn {
-  id          String         @id @default(uuid()) @db.Uuid
-  documentNo  String         @unique @map("document_no") @db.VarChar(50)
-  remark      String?        @db.VarChar(500)
-  createdById String         @map("created_by_id") @db.Uuid
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  createdBy   UserAccount    @relation("sample_in_creator", fields: [createdById], references: [id])
-  items       SampleInItem[]
-  @@index([createdById, createdAt])
-  @@map("sample_in")
-}
-
-model SampleInItem {
-  id         String          @id @default(uuid()) @db.Uuid
-  sampleInId String          @map("sample_in_id") @db.Uuid
-  materialId String          @map("material_id") @db.Uuid
-  locationId String          @map("location_id") @db.Uuid
-  quantity   Int
-  createdAt  DateTime        @default(now()) @map("created_at")
-  sampleIn   SampleIn        @relation(fields: [sampleInId], references: [id], onDelete: Cascade)
-  material   MaterialFabric  @relation(fields: [materialId], references: [id])
-  location   SampleLocation  @relation(fields: [locationId], references: [id])
-  @@index([materialId, locationId])
-  @@map("sample_in_item")
-}
-
-model SampleOut {
-  id          String          @id @default(uuid()) @db.Uuid
-  documentNo  String          @unique @map("document_no") @db.VarChar(50)
-  remark      String?         @db.VarChar(500)
-  createdById String          @map("created_by_id") @db.Uuid
-  createdAt   DateTime        @default(now()) @map("created_at")
-  updatedAt   DateTime        @updatedAt @map("updated_at")
-  createdBy   UserAccount     @relation("sample_out_creator", fields: [createdById], references: [id])
-  items       SampleOutItem[]
-  @@index([createdById, createdAt])
-  @@map("sample_out")
-}
-
-model SampleOutItem {
-  id          String          @id @default(uuid()) @db.Uuid
-  sampleOutId String          @map("sample_out_id") @db.Uuid
-  materialId  String          @map("material_id") @db.Uuid
-  locationId  String          @map("location_id") @db.Uuid
-  quantity    Int
-  createdAt   DateTime        @default(now()) @map("created_at")
-  sampleOut   SampleOut       @relation(fields: [sampleOutId], references: [id], onDelete: Cascade)
-  material    MaterialFabric  @relation(fields: [materialId], references: [id])
-  location    SampleLocation  @relation(fields: [locationId], references: [id])
-  @@index([materialId, locationId])
-  @@map("sample_out_item")
-}
-
-model SampleStock {
-  id         String          @id @default(uuid()) @db.Uuid
-  materialId String          @map("material_id") @db.Uuid
-  locationId String          @map("location_id") @db.Uuid
-  quantity   Int             @default(0)
-  updatedAt  DateTime        @updatedAt @map("updated_at")
-  material   MaterialFabric  @relation(fields: [materialId], references: [id])
-  location   SampleLocation  @relation(fields: [locationId], references: [id])
-  @@unique([materialId, locationId])
-  @@index([locationId])
-  @@map("sample_stock")
 }
 
 model OperationLog {
