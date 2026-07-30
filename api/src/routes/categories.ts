@@ -1,4 +1,4 @@
-import { RecordStatus, RoleCode } from '@prisma/client';
+import { Prisma, RecordStatus, RoleCode } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { ok } from '../lib/api-response.js';
@@ -11,7 +11,7 @@ const router = Router();
 const statusSchema = z.nativeEnum(RecordStatus);
 const idSchema = z.object({ id: z.string().uuid() });
 const listSchema = z.object({ page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(100).default(20), keyword: z.string().trim().max(100).optional(), status: statusSchema.optional() }).strict();
-const bodySchema = z.object({ name: z.string().trim().min(1).max(100), parentId: z.string().uuid().nullable().optional(), sortOrder: z.number().int().min(0).max(999999).optional() }).strict();
+const bodySchema = z.object({ name: z.string().trim().min(1).max(100), code: z.string().trim().max(50).nullable().optional(), description: z.string().trim().max(500).nullable().optional(), parentId: z.string().uuid().nullable().optional(), sortOrder: z.number().int().min(0).max(999999).optional() }).strict();
 const patchSchema = bodySchema.partial().refine((value) => Object.keys(value).length > 0, '至少提供一个修改字段');
 const toggleSchema = z.object({ status: statusSchema }).strict();
 
@@ -29,10 +29,20 @@ async function validateParent(parentId: string | null | undefined, currentId?: s
   }
 }
 
+function handleUniqueError(error: unknown): HttpError | null {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    const target = (error.meta?.target as string[] | undefined) ?? [];
+    if (target.includes('code')) return new HttpError(409, '类别编码已存在');
+    if (target.includes('name')) return new HttpError(409, '类别名称已存在');
+    return new HttpError(409, '唯一字段已存在');
+  }
+  return null;
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const query = listSchema.parse(req.query);
-    const where = { ...(query.status ? { status: query.status } : {}), ...(query.keyword ? { name: { contains: query.keyword, mode: 'insensitive' as const } } : {}) };
+    const where = { ...(query.status ? { status: query.status } : {}), ...(query.keyword ? { OR: [{ name: { contains: query.keyword, mode: 'insensitive' as const } }, { code: { contains: query.keyword, mode: 'insensitive' as const } }] } : {}) };
     const [list, total] = await prisma.$transaction([prisma.materialCategory.findMany({ where, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], skip: (query.page - 1) * query.pageSize, take: query.pageSize, include: { parent: { select: { id: true, name: true } } } }), prisma.materialCategory.count({ where })]);
     ok(res, { list, total, page: query.page, pageSize: query.pageSize });
   } catch (error) { next(error); }
@@ -45,7 +55,7 @@ router.post('/', async (req, res, next) => {
     const item = await prisma.materialCategory.create({ data: body });
     await writeOperationLog({ userId: req.auth!.userId, action: 'CREATE', resource: 'MATERIAL_CATEGORY', resourceId: item.id, detail: { name: item.name }, ip: req.ip });
     ok(res, item, '创建成功', 201);
-  } catch (error) { next(error); }
+  } catch (error) { next(handleUniqueError(error) ?? error); }
 });
 
 router.patch('/:id', async (req, res, next) => {
@@ -57,7 +67,7 @@ router.patch('/:id', async (req, res, next) => {
     const item = await prisma.materialCategory.update({ where: { id }, data: body });
     await writeOperationLog({ userId: req.auth!.userId, action: 'UPDATE', resource: 'MATERIAL_CATEGORY', resourceId: id, detail: body, ip: req.ip });
     ok(res, item, '修改成功');
-  } catch (error) { next(error); }
+  } catch (error) { next(handleUniqueError(error) ?? error); }
 });
 
 router.post('/:id/toggle', async (req, res, next) => {
@@ -68,6 +78,23 @@ router.post('/:id/toggle', async (req, res, next) => {
     const item = await prisma.materialCategory.update({ where: { id }, data: { status } });
     await writeOperationLog({ userId: req.auth!.userId, action: 'TOGGLE', resource: 'MATERIAL_CATEGORY', resourceId: id, detail: { status }, ip: req.ip });
     ok(res, item, status === RecordStatus.ACTIVE ? '已启用' : '已停用');
+  } catch (error) { next(error); }
+});
+
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const { id } = idSchema.parse(req.params);
+    const current = await prisma.materialCategory.findUnique({ where: { id } });
+    if (!current) throw new HttpError(404, '类别不存在');
+    const [childCount, fabricCount] = await Promise.all([
+      prisma.materialCategory.count({ where: { parentId: id } }),
+      prisma.materialFabric.count({ where: { categoryId: id } }),
+    ]);
+    if (childCount > 0) throw new HttpError(400, '该类别下存在子类别，请先删除子类别');
+    if (fabricCount > 0) throw new HttpError(400, '该类别下存在面料，请先迁移或删除相关面料');
+    await prisma.materialCategory.delete({ where: { id } });
+    await writeOperationLog({ userId: req.auth!.userId, action: 'DELETE', resource: 'MATERIAL_CATEGORY', resourceId: id, detail: { name: current.name }, ip: req.ip });
+    ok(res, null, '删除成功');
   } catch (error) { next(error); }
 });
 

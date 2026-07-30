@@ -1,0 +1,17 @@
+[OPTIONS]
+Compatibility=1.1 or later
+Compiled file=doc.chm
+Contents file=doc.hhc
+Index file=doc.hhk
+Binary Index=Yes
+Enhanced decompilation=Yes
+Full-text search=Yes
+Title=环思纺织商贸ERP系统手册
+Default Window=main
+Default topic=doc.htm
+Language=2052
+[WINDOWS]
+main="环思纺织商贸ERP系统手册","doc.hhc","doc.hhk","","",,,,,0x061420,300,0x3032,[0,0,800,600],,,,0,0,0,0
+[FILES]
+doc.htm
+doc.hhp

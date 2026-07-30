@@ -1,0 +1,14 @@
+{
+  "name": "mq-print-agent",
+  "version": "1.0.0",
+  "description": "敏群商贸 ERP 本地打印代理（复刻老 HSTIP 经 HUANSI 打印服务连接标签打印机 / 串口扫描器）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,45 @@
+# 服务器 192.6.121.16 部署配置（HTTP :7776，复用远程 PostgreSQL，无需证书/域名）
+# 用法（在 infra 目录执行）：
+#   docker compose -f docker-compose.server.yml up -d --build
+#   docker compose -f docker-compose.server.yml --profile migrate run --rm migrate
+services:
+  api:
+    build:
+      context: ../api
+      target: production
+    env_file:
+      - ../api/.env
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - upload_data:/app/uploads
+    restart: unless-stopped
+    networks: [erp]
+
+  migrate:
+    build:
+      context: ../api
+      target: build
+    command: npx prisma migrate deploy
+    env_file:
+      - ../api/.env
+    profiles: [migrate]
+    restart: "no"
+    networks: [erp]
+
+  web:
+    build:
+      context: ..
+      dockerfile: Dockerfile.web
+    ports:
+      - "7776:7776"
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks: [erp]
+
+networks:
+  erp:
+
+volumes:
+  upload_data:

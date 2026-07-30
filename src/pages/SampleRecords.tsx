@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
+import { Printer } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import DataTable from '@/components/DataTable'
 import PageHeader from '@/components/PageHeader'
 import { api, downloadBlob } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
+import LabelPrintMenu from '@/components/LabelPrintMenu'
 
 type RecordItem = { id: string; documentNo: string; customerName: string; status: 'ACTIVE' | 'VOIDED'; createdAt: string; _count: { items: number } }
-type Detail = RecordItem & { customer: { name: string; code: string }; createdBy: { displayName: string; username: string }; remark?: string | null; items: { id: string; itemNoSnapshot: string; nameSnapshot: string; specSnapshot?: string | null; quantity: number; remark?: string | null; material: { unit: string } }[] }
+type Detail = RecordItem & { customer: { name: string; code: string }; createdBy: { displayName: string; username: string }; remark?: string | null; contact?: string | null; salesperson?: string | null; expressNo?: string | null; expressCompany?: string | null; sampleType?: string | null; unsampledType?: string | null; currency?: string | null; requirement?: string | null; printedAt?: string | null; items: { id: string; itemNoSnapshot: string; nameSnapshot: string; specSnapshot?: string | null; unitSnapshot?: string | null; compositionSnapshot?: string | null; widthSnapshot?: string | null; factoryNoSnapshot?: string | null; quantity: number; remark?: string | null; material: { unit: string } }[] }
 type Query = { documentNo: string; customer: string; itemNo: string; createdById: string; status: string; dateFrom: string; dateTo: string }
 type Operator = { id: string; displayName: string; username: string }
 
@@ -99,7 +101,9 @@ export default function SampleRecords() {
         { title: '操作', render: (row) => (
           <div className="flex flex-wrap gap-2">
             <button onClick={() => void viewDetail(row.id)}>详情</button>
-            <button disabled={row.status !== 'ACTIVE'} onClick={() => navigate(`/print/labels?sampleChooseId=${row.id}`)}>标签</button>
+            <button disabled={row.status !== 'ACTIVE'} onClick={() => navigate(`/samples/choose?id=${row.id}`)}>编辑</button>
+            <LabelPrintMenu sampleChooseId={row.id} disabled={row.status !== 'ACTIVE'} />
+            <button disabled={row.status !== 'ACTIVE'} onClick={() => navigate(`/print/sample-choose/${row.id}`)} className="inline-flex items-center gap-1"><Printer size={12} />打印</button>
             <button disabled={row.status !== 'ACTIVE'} onClick={() => setExporting(row)}>导出</button>
             {admin && <button onClick={() => void toggle(row)}>{row.status === 'ACTIVE' ? '作废' : '恢复'}</button>}
           </div>
@@ -115,11 +119,15 @@ export default function SampleRecords() {
               <button onClick={() => setDetail(null)}>关闭</button>
             </div>
             <p className="mb-3">客户：{detail.customer.name} 制单人：{detail.createdBy.displayName || detail.createdBy.username} 备注：{detail.remark || '-'}</p>
+            {(detail.contact || detail.salesperson || detail.expressNo || detail.sampleType) && <p className="mb-3 text-sm text-slate-600">联系人：{detail.contact || '-'} 销售员：{detail.salesperson || '-'} 选样类型：{detail.sampleType || '-'} 快递：{detail.expressCompany || '-'} {detail.expressNo || '-'}</p>}
             <DataTable data={detail.items} columns={[
               { title: 'Item No.', render: (item) => item.itemNoSnapshot },
               { title: '名称', render: (item) => item.nameSnapshot },
               { title: '规格', render: (item) => item.specSnapshot || '-' },
-              { title: '数量', render: (item) => `${item.quantity} ${item.material.unit}` },
+              { title: '成分', render: (item) => item.compositionSnapshot || '-' },
+              { title: '幅宽', render: (item) => item.widthSnapshot || '-' },
+              { title: '工厂编号', render: (item) => item.factoryNoSnapshot || '-' },
+              { title: '数量', render: (item) => `${item.quantity} ${item.unitSnapshot || item.material.unit}` },
               { title: '备注', render: (item) => item.remark || '-' },
             ]} />
           </div>

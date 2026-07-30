@@ -1,0 +1,16 @@
+{
+  "port": 8790,
+  "printer": {
+    "mode": "raw",
+    "host": "192.168.1.100",
+    "port": 9100,
+    "printerName": "Argox CP-2140M",
+    "label": { "widthMm": 70, "heightMm": 40, "dpi": 203 }
+  },
+  "scanner": {
+    "enabled": false,
+    "comPort": "COM2",
+    "baudRate": 9600
+  },
+  "corsOrigins": ["http://localhost:5177", "http://127.0.0.1:5177", "http://localhost:5173", "http://127.0.0.1:5173"]
+}

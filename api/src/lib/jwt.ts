@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import type { RoleCode } from '@prisma/client';
 import { env } from '../config/env.js';
 
-export interface TokenPayload { sub: string; sid: string; role: RoleCode }
+export interface TokenPayload { sub: string; sid: string; role: RoleCode; jti?: string }
 
 export const signAccessToken = (payload: TokenPayload) => jwt.sign(payload, env.JWT_ACCESS_SECRET, { expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
 export const signRefreshToken = (payload: TokenPayload) => jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] });

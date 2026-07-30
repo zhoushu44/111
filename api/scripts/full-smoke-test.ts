@@ -28,13 +28,13 @@ async function main() {
     const bootstrap = await call('/api/auth/bootstrap-status')
     check(json(bootstrap.data).data.initialized === true, '系统初始化状态')
 
-    const adminLogin = await call('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'admin', password: 'Admin@123456' }) })
+    const adminLogin = await call('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'zhoushu', password: 'zs1236547' }) })
     check(adminLogin.response.status === 200, '管理员登录')
     let adminToken = json(adminLogin.data).data.accessToken as string
     const adminRefresh = json(adminLogin.data).data.refreshToken as string
     const adminHeaders = () => ({ Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' })
     const me = await call('/api/auth/me', { headers: adminHeaders() })
-    check(json(me.data).data.username === 'admin', '登录会话读取')
+    check(json(me.data).data.username === 'zhoushu', '登录会话读取')
     const refresh = await call('/api/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: adminRefresh }) })
     check(refresh.response.status === 200, '令牌刷新')
     adminToken = json(refresh.data).data.accessToken

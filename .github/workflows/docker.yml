@@ -1,0 +1,68 @@
+name: Build and Push Docker Images
+
+# 触发分支：main 和 master
+on:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Docker Hub 账号密码从仓库 Secrets 读取
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      # ---------- API 镜像（fabric-erp-api）----------
+      - name: Extract metadata (api)
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_HUB_USERNAME }}/fabric-erp-api
+          tags: |
+            type=raw,value=2.0
+            type=raw,value=latest
+
+      - name: Build and push api image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ---------- Web 镜像（fabric-erp-web）----------
+      - name: Extract metadata (web)
+        id: meta-web
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_HUB_USERNAME }}/fabric-erp-web
+          tags: |
+            type=raw,value=2.0
+            type=raw,value=latest
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.web
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

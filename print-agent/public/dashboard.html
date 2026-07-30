@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>敏群 ERP · 本地打印代理</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#fff; --line:#e3e8ee; --brand:#123c5a; --emerald:#0f9d6b; --red:#d24; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background:var(--bg); color:#223; }
+  header { background:var(--brand); color:#fff; padding:14px 20px; font-weight:600; }
+  .wrap { max-width:860px; margin:18px auto; padding:0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:16px; }
+  h2 { font-size:15px; margin:0 0 12px; color:var(--brand); }
+  label { display:block; font-size:12px; color:#667; margin:10px 0 4px; }
+  input, select { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:9px; font-size:14px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  button { background:var(--brand); color:#fff; border:0; border-radius:9px; padding:9px 16px; font-size:14px; cursor:pointer; }
+  button.ghost { background:#eef2f6; color:var(--brand); }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px; }
+  .status { font-size:13px; padding:6px 10px; border-radius:8px; background:#eef2f6; }
+  .ok { color:var(--emerald); } .bad { color:var(--red); }
+  pre { background:#0e1726; color:#cfe; padding:12px; border-radius:10px; overflow:auto; font-size:12px; max-height:240px; }
+  .muted { color:#889; font-size:12px; }
+</style>
+</head>
+<body>
+<header>敏群 ERP · 本地打印代理（复刻 HSTIP / HUANSI 打印服务）</header>
+<div class="wrap">
+  <div class="card">
+    <h2>打印机配置</h2>
+    <div class="grid">
+      <div><label>连接模式</label>
+        <select id="mode">
+          <option value="raw">raw（网络直连 ZPL/TCP）</option>
+          <option value="system">system（Windows 已装驱动）</option>
+        </select>
+      </div>
+      <div><label>标签尺寸 (mm)</label>
+        <div style="display:flex;gap:8px">
+          <input id="w" type="number" value="70" /> <input id="h" type="number" value="40" /> <input id="dpi" type="number" value="203" style="max-width:80px" placeholder="dpi"/>
+        </div>
+      </div>
+      <div><label>打印机 IP（raw 模式）</label><input id="host" placeholder="192.168.1.100" /></div>
+      <div><label>打印机端口（raw，通常 9100）</label><input id="port" type="number" value="9100" /></div>
+      <div><label>系统打印机名（system 模式）</label><input id="printerName" placeholder="Argox CP-2140M" /></div>
+    </div>
+    <div class="row">
+      <button onclick="save()">保存配置</button>
+      <button class="ghost" onclick="testPrint()">测试打印</button>
+      <span id="saveMsg" class="status"></span>
+    </div>
+    <p class="muted">raw 模式：将 ZPL 指令通过 TCP 直发打印机（Zebra / TSC / Argox-ZPL仿真），最贴近老系统。system 模式：写临时文件经 Windows 打印（建议打印机端口设为 Generic / Text Only）。</p>
+  </div>
+
+  <div class="card">
+    <h2>串口扫描器（COM）</h2>
+    <div class="grid">
+      <div><label>COM 端口</label><input id="comPort" placeholder="COM2" /></div>
+      <div><label>波特率</label><input id="baudRate" type="number" value="9600" /></div>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input id="scanEn" type="checkbox" style="width:auto" /> 启用串口扫描器</label>
+    <div class="row">
+      <button class="ghost" onclick="save()">保存并重启扫描器</button>
+      <span id="scanMsg" class="status"></span>
+    </div>
+    <p class="muted">启用后，扫描到的条码经 SSE（/api/scanner/stream）推送给 Web；Web 端也可用键盘楔子扫码（无需本代理）。需先 <code>npm i serialport</code>。</p>
+  </div>
+
+  <div class="card">
+    <h2>状态</h2>
+    <div class="row">
+      <button class="ghost" onclick="load()">刷新</button>
+      <span id="status" class="status">—</span>
+    </div>
+    <p class="muted">Web 标签打印页可切到「本地打印代理」模式，把标签发给本服务，由本服务真正输出到标签打印机（等价于老系统经 HUANSI 服务打印）。</p>
+  </div>
+
+  <div class="card">
+    <h2>ZPL 预览（调试）</h2>
+    <div class="row">
+      <input id="pv" placeholder="TEST-001" style="max-width:200px" />
+      <button class="ghost" onclick="preview()">生成 ZPL</button>
+    </div>
+    <pre id="zplOut">—</pre>
+  </div>
+</div>
+
+<script>
+const api = (p, opt) => fetch(p, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opt)).then(r => r.json())
+async function load() {
+  const s = await api('/api/status')
+  document.getElementById('status').textContent = `agent:${s.agent} | 模式:${s.printer.mode} | 标签:${s.printer.label.widthMm}x${s.printer.label.heightMm}@${s.printer.label.dpi} | 串口:${s.scanner.enabled ? '开' : '关'}${s.scanner.hasSerialport ? '' : '(无serialport)'}`;
+  document.getElementById('mode').value = s.printer.mode
+  document.getElementById('w').value = s.printer.label.widthMm
+  document.getElementById('h').value = s.printer.label.heightMm
+  document.getElementById('dpi').value = s.printer.label.dpi || 203
+  document.getElementById('host').value = s.printer.host || ''
+  document.getElementById('port').value = s.printer.port || 9100
+  document.getElementById('printerName').value = s.printer.printerName || ''
+  document.getElementById('comPort').value = (s.scanner && s.scanner.comPort) || 'COM2'
+  document.getElementById('baudRate').value = (s.scanner && s.scanner.baudRate) || 9600
+  document.getElementById('scanEn').checked = !!(s.scanner && s.scanner.enabled)
+}
+async function save() {
+  const cfg = {
+    printer: {
+      mode: document.getElementById('mode').value,
+      host: document.getElementById('host').value,
+      port: Number(document.getElementById('port').value),
+      printerName: document.getElementById('printerName').value,
+      label: { widthMm: Number(document.getElementById('w').value), heightMm: Number(document.getElementById('h').value), dpi: Number(document.getElementById('dpi').value) }
+    },
+    scanner: {
+      enabled: document.getElementById('scanEn').checked,
+      comPort: document.getElementById('comPort').value,
+      baudRate: Number(document.getElementById('baudRate').value)
+    }
+  }
+  const r = await api('/api/config', { method: 'POST', body: JSON.stringify(cfg) })
+  document.getElementById('saveMsg').textContent = r.ok ? '已保存' : '保存失败'
+  load()
+}
+async function testPrint() {
+  const r = await api('/api/print/label', { method: 'POST', body: JSON.stringify({ labels: [{ qrValue: 'TEST-001', data: { itemNo: 'TEST-001', name: 'Sample Fabric', specification: 'CVC', composition: '65%C 35%P', width: '150cm', weight: '120g', remark: '' } }] }) })
+  document.getElementById('status').textContent = `打印结果: 成功 ${r.printed ?? 0} / 错误 ${JSON.stringify(r.errors || [])}`
+}
+async function preview() {
+  const itemNo = document.getElementById('pv').value || 'TEST-001'
+  const r = await fetch('/api/zpl/preview?itemNo=' + encodeURIComponent(itemNo))
+  document.getElementById('zplOut').textContent = await r.text()
+}
+load()
+</script>
+</body>
+</html>

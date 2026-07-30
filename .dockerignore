@@ -1,0 +1,14 @@
+# 前端构建上下文（项目根）排除项
+node_modules
+dist
+api
+.git
+.workbuddy
+.trae
+.dbg
+.postgres-data
+print-agent
+*.xlsx
+*.webp
+*.md
+.env

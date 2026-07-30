@@ -10,7 +10,7 @@ const schema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
-  AUTH_LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+  AUTH_LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
   AUTH_REFRESH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(30),
   UPLOAD_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(30),
 });

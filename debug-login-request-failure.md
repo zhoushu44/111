@@ -1,6 +1,6 @@
 # Debug Session: login-request-failure
-- **Status**: [OPEN]
-- **Issue**: 登录页面提示“请求失败，请稍后重试”。
+- **Status**: [RESOLVED] (2026-07-29)
+- **Issue**: 登录页面提示“请求失败，请稍后重重试”。
 - **Debug Server**: 待启动
 - **Log File**: .dbg/trae-debug-log-login-request-failure.ndjson
 
@@ -22,3 +22,8 @@
 
 ## Verification Conclusion
 待确认。
+
+## Resolution (2026-07-29)
+与 backend-network-failure 同源，已解决。后端 3000 端口已监听、`api/.env` 已配置、远程 PostgreSQL 可达。
+实测 `POST /api/auth/login`（admin/Admin@123456）→ `{"code":0,"message":"success",...}`，返回 user + accessToken + refreshToken，登录链路正常。
+种子账号：admin/Admin@123456（管理员）、staff/Staff@123456（员工）。

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Prisma, AccountStatus, RoleCode } from '@prisma/client';
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
@@ -5,7 +6,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { ok } from '../lib/api-response.js';
 import { HttpError } from '../lib/http-error.js';
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../lib/jwt.js';
+import { signAccessToken, signRefreshToken, verifyRefreshToken, type TokenPayload } from '../lib/jwt.js';
 import { authenticate } from '../middleware/auth.js';
 import { writeOperationLog } from '../services/operation-log.service.js';
 
@@ -30,8 +31,9 @@ async function createSessionTokens(client: DatabaseClient, user: AuthenticatedUs
     data: { userId: user.id, refreshTokenHash: 'pending', deviceName, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
   });
   const payload = { sub: user.id, sid: session.id, role: user.role.code };
-  const refreshToken = signRefreshToken(payload);
-  await client.userSession.update({ where: { id: session.id }, data: { refreshTokenHash: await bcrypt.hash(refreshToken, 12) } });
+  const jti = randomBytes(32).toString('hex');
+  const refreshToken = signRefreshToken({ ...payload, jti });
+  await client.userSession.update({ where: { id: session.id }, data: { refreshTokenHash: await bcrypt.hash(jti, 12) } });
   return { user: publicUser(user), accessToken: signAccessToken(payload), refreshToken };
 }
 
@@ -81,14 +83,20 @@ router.post('/login', async (req, res, next) => {
 router.post('/refresh', async (req, res, next) => {
   try {
     const { refreshToken } = refreshSchema.parse(req.body);
-    const payload = verifyRefreshToken(refreshToken);
+    let payload: TokenPayload;
+    try {
+      payload = verifyRefreshToken(refreshToken);
+    } catch {
+      throw new HttpError(401, '刷新令牌无效或已过期');
+    }
     const session = await prisma.userSession.findUnique({ where: { id: payload.sid }, include: { user: { include: { role: true } } } });
-    if (!session || session.userId !== payload.sub || session.revokedAt || session.expiresAt <= new Date() || session.user.status !== AccountStatus.ACTIVE || !(await bcrypt.compare(refreshToken, session.refreshTokenHash))) {
+    if (!session || session.userId !== payload.sub || session.revokedAt || session.expiresAt <= new Date() || session.user.status !== AccountStatus.ACTIVE || !(await bcrypt.compare(payload.jti, session.refreshTokenHash))) {
       throw new HttpError(401, '刷新令牌无效或已过期');
     }
     const nextPayload = { sub: session.user.id, sid: session.id, role: session.user.role.code };
-    const nextRefreshToken = signRefreshToken(nextPayload);
-    await prisma.userSession.update({ where: { id: session.id }, data: { refreshTokenHash: await bcrypt.hash(nextRefreshToken, 12) } });
+    const nextJti = randomBytes(32).toString('hex');
+    const nextRefreshToken = signRefreshToken({ ...nextPayload, jti: nextJti });
+    await prisma.userSession.update({ where: { id: session.id }, data: { refreshTokenHash: await bcrypt.hash(nextJti, 12) } });
     ok(res, { user: publicUser(session.user), accessToken: signAccessToken(nextPayload), refreshToken: nextRefreshToken });
   } catch (error) { next(error); }
 });

@@ -20,16 +20,49 @@ import { errorHandler } from './middleware/error-handler.js';
 
 export const app = express();
 const rateLimitError = (_req: express.Request, res: express.Response) => res.status(429).json({ code: 429, message: '请求过于频繁，请稍后再试', data: null });
-const createLimiter = (max: number) => rateLimit({ windowMs: 15 * 60 * 1000, limit: max, standardHeaders: 'draft-8', legacyHeaders: false, handler: rateLimitError });
+const createLimiter = (
+  max: number,
+  keyGenerator?: (req: express.Request, res: express.Response) => string,
+) =>
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: max,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: rateLimitError,
+    ...(keyGenerator ? { keyGenerator } : {}),
+  });
+
+// 登录限流按「客户端 IP + 账号」分别计数：开发环境下前端经 Vite 代理访问后端，
+// 所有请求的客户 IP 都是 127.0.0.1，若仅按 IP 计数会导致不同账号/浏览器共享同一个
+// 限流桶而互相误伤。按账号分别计数既符合防暴力破解的语义，又避免该问题。
+const loginKeyGenerator = (req: express.Request): string => {
+  const body = (req.body ?? {}) as { username?: string; account?: string };
+  const account = body.username ?? body.account ?? 'unknown';
+  return `${req.ip}:${account}`;
+};
 const corsOrigins = env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean);
 app.set('trust proxy', 1);
+
+// 产品图片静态目录（/uploads）必须在 helmet 之前挂载：否则 helmet 会为这些响应
+// 附加 Cross-Origin-Resource-Policy: same-origin（以及 CSP），浏览器在跨源加载图片
+// （如前端直接使用绝对 VITE_API_BASE_URL 直连后端）时会被拦截，表现为缩略图裂图。
+// 这里显式允许跨源加载图片（内部 ERP，图片本身不含可执行内容）。
+app.use(
+  '/uploads',
+  express.static(path.resolve(process.cwd(), 'uploads'), {
+    setHeaders(res) {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
+  }),
+);
+
 app.use(helmet());
 app.use(cors({ origin: corsOrigins.length ? corsOrigins : false, credentials: false }));
 app.use(express.json({ limit: '1mb' }));
-app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 app.get('/health', (_req, res) => ok(res, { status: 'ok' }));
-app.use('/api/auth/login', createLimiter(env.AUTH_LOGIN_RATE_LIMIT_MAX));
-app.use('/api/auth/refresh', createLimiter(env.AUTH_REFRESH_RATE_LIMIT_MAX));
+app.use('/api/auth/login', createLimiter(env.AUTH_LOGIN_RATE_LIMIT_MAX, loginKeyGenerator));
+app.use('/api/auth/refresh', createLimiter(env.AUTH_REFRESH_RATE_LIMIT_MAX, (req) => req.ip ?? 'unknown'));
 app.use('/api/auth', authRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api', partnersRouter);

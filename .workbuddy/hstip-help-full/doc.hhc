@@ -1,0 +1,769 @@
+<HTML>
+<HEAD>
+  <meta name="GENERATOR" content="Batch DOC TO CHM Generator - Batchwork Software">
+</HEAD>
+<BODY>
+<OBJECT type="text/site properties">
+	<param name="Window Styles" value="0x800235">
+</OBJECT>
+<UL>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="1	基本操作">
+		<param name="Local" value="doc.htm#_Toc271719054">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="1.1	系统主框架">
+		<param name="Local" value="doc.htm#_Toc271719055">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="1.2	系统菜单操作">
+		<param name="Local" value="doc.htm#_Toc271719056">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="1.3	常用控件的操作">
+		<param name="Local" value="doc.htm#_Toc271719057">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="1.4	如何查找记录">
+		<param name="Local" value="doc.htm#_Toc271719058">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="1.5	常用子窗体的操作">
+		<param name="Local" value="doc.htm#_Toc271719059">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="2	前期管理">
+		<param name="Local" value="doc.htm#_Toc271719060">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="2.1	物料类别维护">
+		<param name="Local" value="doc.htm#_Toc271719061">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="2.2	物料维护">
+		<param name="Local" value="doc.htm#_Toc271719062">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="2.3	产品资料管理">
+		<param name="Local" value="doc.htm#_Toc271719063">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="2.4	产品图片维护">
+		<param name="Local" value="doc.htm#_Toc271719064">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="2.5	供应商报价">
+		<param name="Local" value="doc.htm#_Toc271719065">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="2.6	加工商报价">
+		<param name="Local" value="doc.htm#_Toc271719066">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="2.7	供应商管理">
+		<param name="Local" value="doc.htm#_Toc271719067">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="2.8	跟单员维护">
+		<param name="Local" value="doc.htm#_Toc271719068">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3	销售管理">
+		<param name="Local" value="doc.htm#_Toc271719069">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.1	基础资料">
+		<param name="Local" value="doc.htm#_Toc271719070">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.1.1	销售员维护">
+		<param name="Local" value="doc.htm#_Toc271719071">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.1.2	客户资料维护">
+		<param name="Local" value="doc.htm#_Toc271719072">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.1.3	货货公司维护">
+		<param name="Local" value="doc.htm#_Toc271719073">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.1.4	港口资料维护">
+		<param name="Local" value="doc.htm#_Toc271719074">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.2	合同管理">
+		<param name="Local" value="doc.htm#_Toc271719075">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.2.1	销售合同管理">
+		<param name="Local" value="doc.htm#_Toc271719076">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.2.2	销售合同查询">
+		<param name="Local" value="doc.htm#_Toc271719077">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.3	订单管理">
+		<param name="Local" value="doc.htm#_Toc271719078">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.3.1	销售订单管理">
+		<param name="Local" value="doc.htm#_Toc271719079">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.3.2	销售订单查询">
+		<param name="Local" value="doc.htm#_Toc271719080">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.3.3	销售订单更改（销售员）">
+		<param name="Local" value="doc.htm#_Toc271719081">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.3.4	订单业务处理">
+		<param name="Local" value="doc.htm#_Toc271719082">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.3.5	订单交货预警">
+		<param name="Local" value="doc.htm#_Toc271719083">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.3.6	订单交货查询">
+		<param name="Local" value="doc.htm#_Toc271719084">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.3.7	订单查询总表">
+		<param name="Local" value="doc.htm#_Toc271719085">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.3.8	订单全程跟踪">
+		<param name="Local" value="doc.htm#_Toc271719086">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.4	审核管理">
+		<param name="Local" value="doc.htm#_Toc271719087">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.4.1	销售订单审核">
+		<param name="Local" value="doc.htm#_Toc271719088">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="3.4.2	订单更改审核">
+		<param name="Local" value="doc.htm#_Toc271719089">
+		</OBJECT>
+</UL></UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="4	采购管理">
+		<param name="Local" value="doc.htm#_Toc271719090">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="4.1	坯布采购合同">
+		<param name="Local" value="doc.htm#_Toc271719091">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="4.2	坯布合同查询">
+		<param name="Local" value="doc.htm#_Toc271719092">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="4.3	成品采购合同">
+		<param name="Local" value="doc.htm#_Toc271719093">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="4.4	成品合同查询">
+		<param name="Local" value="doc.htm#_Toc271719094">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="5	加工管理">
+		<param name="Local" value="doc.htm#_Toc271719095">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="5.1	坯布外加工管理">
+		<param name="Local" value="doc.htm#_Toc271719096">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="5.2	成品外加工管理">
+		<param name="Local" value="doc.htm#_Toc271719097">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="5.3	加工合同查询">
+		<param name="Local" value="doc.htm#_Toc271719098">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6	物流管理">
+		<param name="Local" value="doc.htm#_Toc271719099">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.1	基础资料维护">
+		<param name="Local" value="doc.htm#_Toc271719100">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.1.1	坯布仓架位维护">
+		<param name="Local" value="doc.htm#_Toc271719101">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.1.2	成品仓架位维护">
+		<param name="Local" value="doc.htm#_Toc271719102">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2	坯布仓">
+		<param name="Local" value="doc.htm#_Toc271719103">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.1	入坯管理">
+		<param name="Local" value="doc.htm#_Toc271719104">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.1.1	坯布直接入库">
+		<param name="Local" value="doc.htm#_Toc271719105">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.1.2	坯布采购入库">
+		<param name="Local" value="doc.htm#_Toc271719106">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.1.3	审核入坯单">
+		<param name="Local" value="doc.htm#_Toc271719107">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.1.4	取消入坯单">
+		<param name="Local" value="doc.htm#_Toc271719108">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.1.5	坯布入库查询">
+		<param name="Local" value="doc.htm#_Toc271719109">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2	出坯管理">
+		<param name="Local" value="doc.htm#_Toc271719110">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2.1	送坯管理">
+		<param name="Local" value="doc.htm#_Toc271719111">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2.2	坯布生产投坯">
+		<param name="Local" value="doc.htm#_Toc271719112">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2.3	库存调拨管理">
+		<param name="Local" value="doc.htm#_Toc271719113">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2.4	采购退坯管理">
+		<param name="Local" value="doc.htm#_Toc271719114">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2.5	加工退坯出库">
+		<param name="Local" value="doc.htm#_Toc271719115">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2.6	坯布其它出库">
+		<param name="Local" value="doc.htm#_Toc271719116">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2.7	审核出库单">
+		<param name="Local" value="doc.htm#_Toc271719117">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2.8	取消出库单">
+		<param name="Local" value="doc.htm#_Toc271719118">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2.9	坯布出库查询">
+		<param name="Local" value="doc.htm#_Toc271719119">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.2.10	坯布调拨查询">
+		<param name="Local" value="doc.htm#_Toc271719120">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.3	库存管理">
+		<param name="Local" value="doc.htm#_Toc271719121">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.3.1	坯布库存查询">
+		<param name="Local" value="doc.htm#_Toc271719122">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.3.2	按加工商统计库存">
+		<param name="Local" value="doc.htm#_Toc271719123">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.4	分析报表">
+		<param name="Local" value="doc.htm#_Toc271719124">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.4.1	坯布投坯查询">
+		<param name="Local" value="doc.htm#_Toc271719125">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.2.4.2	坯布入出库报表">
+		<param name="Local" value="doc.htm#_Toc271719126">
+		</OBJECT>
+</UL></UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3	成品布仓">
+		<param name="Local" value="doc.htm#_Toc271719127">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.1	入库管理">
+		<param name="Local" value="doc.htm#_Toc271719128">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.1.1	成品加工入库">
+		<param name="Local" value="doc.htm#_Toc271719129">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.1.2	成品采购入库">
+		<param name="Local" value="doc.htm#_Toc271719130">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.1.3	成品退货入库">
+		<param name="Local" value="doc.htm#_Toc271719131">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.1.4	加工回修入库">
+		<param name="Local" value="doc.htm#_Toc271719132">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.1.5	成品外加工入库">
+		<param name="Local" value="doc.htm#_Toc271719133">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.1.6	成品其它入库">
+		<param name="Local" value="doc.htm#_Toc271719134">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.1.7	审核入库单">
+		<param name="Local" value="doc.htm#_Toc271719135">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.1.8	取消入库单">
+		<param name="Local" value="doc.htm#_Toc271719136">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.1.9	成品入库查询">
+		<param name="Local" value="doc.htm#_Toc271719137">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2	发货管理">
+		<param name="Local" value="doc.htm#_Toc271719138">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.1	成品发货管理">
+		<param name="Local" value="doc.htm#_Toc271719139">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.2	成品剪样出库">
+		<param name="Local" value="doc.htm#_Toc271719140">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.3	成品回修出库">
+		<param name="Local" value="doc.htm#_Toc271719141">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.4	成品外加工出库">
+		<param name="Local" value="doc.htm#_Toc271719142">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.5	成品退供应商">
+		<param name="Local" value="doc.htm#_Toc271719143">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.6	成品其它出库">
+		<param name="Local" value="doc.htm#_Toc271719144">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.7	成品调拨管理">
+		<param name="Local" value="doc.htm#_Toc271719145">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.8	成品加工投坯">
+		<param name="Local" value="doc.htm#_Toc271719146">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.9	审核发货单">
+		<param name="Local" value="doc.htm#_Toc271719147">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.10	取消发货单">
+		<param name="Local" value="doc.htm#_Toc271719148">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.11	发货查询">
+		<param name="Local" value="doc.htm#_Toc271719149">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.12	剪样出库查询">
+		<param name="Local" value="doc.htm#_Toc271719150">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.2.13	成品投坯查询">
+		<param name="Local" value="doc.htm#_Toc271719151">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.3	库存管理">
+		<param name="Local" value="doc.htm#_Toc271719152">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.3.1	库存查询">
+		<param name="Local" value="doc.htm#_Toc271719153">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.4	分析报表">
+		<param name="Local" value="doc.htm#_Toc271719154">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.4.1	成品入库报表">
+		<param name="Local" value="doc.htm#_Toc271719155">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="6.3.4.2	成品出库报表">
+		<param name="Local" value="doc.htm#_Toc271719156">
+		</OBJECT>
+</UL></UL></UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7	财务管理">
+		<param name="Local" value="doc.htm#_Toc271719157">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.1	基础数据管理">
+		<param name="Local" value="doc.htm#_Toc271719158">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.1.1	现金银行维护">
+		<param name="Local" value="doc.htm#_Toc271719159">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2	应收管理">
+		<param name="Local" value="doc.htm#_Toc271719160">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.1	登记凭证">
+		<param name="Local" value="doc.htm#_Toc271719161">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.1.1	销售应收凭证（成品）">
+		<param name="Local" value="doc.htm#_Toc271719162">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.1.2	其他应收凭证">
+		<param name="Local" value="doc.htm#_Toc271719163">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.1.3	预收款凭证">
+		<param name="Local" value="doc.htm#_Toc271719164">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.1.4	收款凭证">
+		<param name="Local" value="doc.htm#_Toc271719165">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.2	凭证审核">
+		<param name="Local" value="doc.htm#_Toc271719166">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.2.1	应收凭证审核">
+		<param name="Local" value="doc.htm#_Toc271719167">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.2.2	应收凭证取消审核">
+		<param name="Local" value="doc.htm#_Toc271719168">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.2.3	收款凭证审核">
+		<param name="Local" value="doc.htm#_Toc271719169">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.2.4	收款凭证取消审核">
+		<param name="Local" value="doc.htm#_Toc271719170">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.3	应收查询">
+		<param name="Local" value="doc.htm#_Toc271719171">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.3.1	应收款查询">
+		<param name="Local" value="doc.htm#_Toc271719172">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.3.2	收款查询">
+		<param name="Local" value="doc.htm#_Toc271719173">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.3.3	应收款账款账齡查询">
+		<param name="Local" value="doc.htm#_Toc271719174">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.4	应收对账单">
+		<param name="Local" value="doc.htm#_Toc271719175">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.4.1	应收款汇总对账单（横向）">
+		<param name="Local" value="doc.htm#_Toc271719176">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.4.2	应收款汇总对账单（纵向）">
+		<param name="Local" value="doc.htm#_Toc271719177">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.4.3	应收款明细对账单（订单）">
+		<param name="Local" value="doc.htm#_Toc271719178">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.5	应收款核销">
+		<param name="Local" value="doc.htm#_Toc271719179">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.5.1	到款结算">
+		<param name="Local" value="doc.htm#_Toc271719180">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.5.2	预收冲应收">
+		<param name="Local" value="doc.htm#_Toc271719181">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.5.3	应收冲应付">
+		<param name="Local" value="doc.htm#_Toc271719182">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.5.4	预收冲预付">
+		<param name="Local" value="doc.htm#_Toc271719183">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.5.5	收款冲付款">
+		<param name="Local" value="doc.htm#_Toc271719184">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.2.5.6	应收款核销查询">
+		<param name="Local" value="doc.htm#_Toc271719185">
+		</OBJECT>
+</UL></UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3	应付管理">
+		<param name="Local" value="doc.htm#_Toc271719186">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.1	登记凭证">
+		<param name="Local" value="doc.htm#_Toc271719187">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.1.1	坯布采购应付凭证">
+		<param name="Local" value="doc.htm#_Toc271719188">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.1.2	成品采购应付凭证">
+		<param name="Local" value="doc.htm#_Toc271719189">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.1.3	坯布加工应付凭证">
+		<param name="Local" value="doc.htm#_Toc271719190">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.1.4	其他应付凭证">
+		<param name="Local" value="doc.htm#_Toc271719191">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.1.5	预付款凭证">
+		<param name="Local" value="doc.htm#_Toc271719192">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.1.6	实付款凭证">
+		<param name="Local" value="doc.htm#_Toc271719193">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.2	凭证审核">
+		<param name="Local" value="doc.htm#_Toc271719194">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.2.1	应付款凭证审核">
+		<param name="Local" value="doc.htm#_Toc271719195">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.2.2	应付款凭证取消审核">
+		<param name="Local" value="doc.htm#_Toc271719196">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.2.3	付款凭证审核">
+		<param name="Local" value="doc.htm#_Toc271719197">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.2.4	付款凭证取消审核">
+		<param name="Local" value="doc.htm#_Toc271719198">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.3	应付查询">
+		<param name="Local" value="doc.htm#_Toc271719199">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.3.1	应付查询">
+		<param name="Local" value="doc.htm#_Toc271719200">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.3.2	付款查询">
+		<param name="Local" value="doc.htm#_Toc271719201">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.3.3	应付账款账齡查询">
+		<param name="Local" value="doc.htm#_Toc271719202">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.4	应付对账单">
+		<param name="Local" value="doc.htm#_Toc271719203">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.4.1	应付款汇总对账单（横向）">
+		<param name="Local" value="doc.htm#_Toc271719204">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.4.2	应付款汇总对账单（纵向）">
+		<param name="Local" value="doc.htm#_Toc271719205">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.4.3	应付款明细对账单（合同）">
+		<param name="Local" value="doc.htm#_Toc271719206">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.5	应付款核销">
+		<param name="Local" value="doc.htm#_Toc271719207">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.5.1	付款结算">
+		<param name="Local" value="doc.htm#_Toc271719208">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.5.2	预付冲应付">
+		<param name="Local" value="doc.htm#_Toc271719209">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.5.3	应付冲应收">
+		<param name="Local" value="doc.htm#_Toc271719210">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.5.4	付款冲收款">
+		<param name="Local" value="doc.htm#_Toc271719211">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="7.3.5.5	应付核销查询">
+		<param name="Local" value="doc.htm#_Toc271719212">
+		</OBJECT>
+</UL></UL></UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8	决策支持">
+		<param name="Local" value="doc.htm#_Toc271719213">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.1	销售订单分析">
+		<param name="Local" value="doc.htm#_Toc271719214">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.1.1	按客户分析">
+		<param name="Local" value="doc.htm#_Toc271719215">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.1.2	按业务员分析">
+		<param name="Local" value="doc.htm#_Toc271719216">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.1.3	按销售组分析">
+		<param name="Local" value="doc.htm#_Toc271719217">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.1.4	按坯布品种分析">
+		<param name="Local" value="doc.htm#_Toc271719218">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.1.5	按成品品种分析">
+		<param name="Local" value="doc.htm#_Toc271719219">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.1.6	按订单类型分析">
+		<param name="Local" value="doc.htm#_Toc271719220">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.1.7	按加工方式">
+		<param name="Local" value="doc.htm#_Toc271719221">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.2	销售订单趋势分析">
+		<param name="Local" value="doc.htm#_Toc271719222">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.2.1	按客户分析">
+		<param name="Local" value="doc.htm#_Toc271719223">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.2.2	按销售员分析">
+		<param name="Local" value="doc.htm#_Toc271719224">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.2.3	按销售组别分析">
+		<param name="Local" value="doc.htm#_Toc271719225">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.2.4	按坯布品种分析">
+		<param name="Local" value="doc.htm#_Toc271719226">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.2.5	按成品品种分析">
+		<param name="Local" value="doc.htm#_Toc271719227">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.2.6	按物料类别分析">
+		<param name="Local" value="doc.htm#_Toc271719228">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="8.2.7	按订单类型分析">
+		<param name="Local" value="doc.htm#_Toc271719229">
+		</OBJECT>
+</UL></UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="9	信息中心">
+		<param name="Local" value="doc.htm#_Toc271719230">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="9.1	物料查询">
+		<param name="Local" value="doc.htm#_Toc271719231">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="9.2	供应商查询">
+		<param name="Local" value="doc.htm#_Toc271719232">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="9.3	客户资料查询">
+		<param name="Local" value="doc.htm#_Toc271719233">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="9.4	产品资料查询">
+		<param name="Local" value="doc.htm#_Toc271719234">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="9.5	供应商报价查询">
+		<param name="Local" value="doc.htm#_Toc271719235">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="9.6	加工商报价查询">
+		<param name="Local" value="doc.htm#_Toc271719236">
+		</OBJECT>
+</UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="10	系统管理">
+		<param name="Local" value="doc.htm#_Toc271719237">
+		</OBJECT>
+<UL>	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="10.1	权限管理">
+		<param name="Local" value="doc.htm#_Toc271719238">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="10.2	系统登录日志">
+		<param name="Local" value="doc.htm#_Toc271719239">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="10.3	系统使用日志">
+		<param name="Local" value="doc.htm#_Toc271719240">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="10.4	重要操作日志">
+		<param name="Local" value="doc.htm#_Toc271719241">
+		</OBJECT>
+	<LI><OBJECT type="text/sitemap">
+		<param name="Name" value="10.5	本公司信息维护">
+		<param name="Local" value="doc.htm#_Toc271719242">
+		</OBJECT>
+
+</UL>
+</BODY>
+</HTML>

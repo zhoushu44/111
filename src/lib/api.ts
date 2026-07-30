@@ -14,9 +14,12 @@ export const setTokens = (access: string | null, refresh: string | null) => {
 }
 export const clearAuth = () => { setTokens(null, null); localStorage.removeItem('user') }
 export const assetUrl = (url?: string | null) => {
-  if (!url || /^https?:\/\//i.test(url) || !url.startsWith('/')) return url ?? ''
-  if (baseUrl.startsWith('/')) return url
-  return `${new URL(baseUrl).origin}${url}`
+  // 空值或已是绝对外链（如 CDN / 第三方图床）原样返回
+  if (!url || /^https?:\/\//i.test(url)) return url ?? ''
+  // 项目内资源（/uploads/...）一律返回相对路径：由当前页面同源的
+  // Vite(dev) / nginx(prod) 代理到后端静态目录。保持同源可避免被后端
+  // helmet 的 Cross-Origin-Resource-Policy: same-origin 拦截图片导致缩略图裂图。
+  return url
 }
 
 async function refresh() {
@@ -44,5 +47,5 @@ export async function request<T>(path: string, options: RequestInit & { response
   if (!response.ok || !result || result.code >= 400) throw new ApiError(result?.message || '请求失败，请稍后重试', response.status)
   return result.data
 }
-export const api = { get: <T>(path: string) => request<T>(path), post: <T>(path: string, data?: unknown) => request<T>(path, { method: 'POST', body: data instanceof FormData ? data : JSON.stringify(data ?? {}) }), patch: <T>(path: string, data: unknown) => request<T>(path, { method: 'PATCH', body: JSON.stringify(data) }), delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }), download: (path: string, options: RequestInit = {}) => request<Blob>(path, { ...options, responseType: 'blob' }) }
+export const api = { get: <T>(path: string) => request<T>(path), post: <T>(path: string, data?: unknown) => request<T>(path, { method: 'POST', body: data instanceof FormData ? data : JSON.stringify(data ?? {}) }), put: <T>(path: string, data: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(data) }), patch: <T>(path: string, data: unknown) => request<T>(path, { method: 'PATCH', body: JSON.stringify(data) }), delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }), download: (path: string, options: RequestInit = {}) => request<Blob>(path, { ...options, responseType: 'blob' }) }
 export const downloadBlob = (blob: Blob, filename: string) => { const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url) }
