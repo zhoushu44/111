@@ -1,8 +1,9 @@
 import path from 'node:path';
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import helmet from 'helmet';
-import { rateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import { env } from './config/env.js';
 import { ok } from './lib/api-response.js';
 import authRouter from './routes/auth.js';
@@ -39,7 +40,7 @@ const createLimiter = (
 const loginKeyGenerator = (req: express.Request): string => {
   const body = (req.body ?? {}) as { username?: string; account?: string };
   const account = body.username ?? body.account ?? 'unknown';
-  return `${req.ip}:${account}`;
+  return `${ipKeyGenerator(req.ip ?? 'unknown')}:${account}`;
 };
 const corsOrigins = env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean);
 app.set('trust proxy', 1);
@@ -51,6 +52,8 @@ app.set('trust proxy', 1);
 app.use(
   '/uploads',
   express.static(path.resolve(process.cwd(), 'uploads'), {
+    maxAge: '30d',
+    immutable: true,
     setHeaders(res) {
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     },
@@ -58,11 +61,12 @@ app.use(
 );
 
 app.use(helmet());
+app.use(compression());
 app.use(cors({ origin: corsOrigins.length ? corsOrigins : false, credentials: false }));
 app.use(express.json({ limit: '1mb' }));
 app.get('/health', (_req, res) => ok(res, { status: 'ok' }));
 app.use('/api/auth/login', createLimiter(env.AUTH_LOGIN_RATE_LIMIT_MAX, loginKeyGenerator));
-app.use('/api/auth/refresh', createLimiter(env.AUTH_REFRESH_RATE_LIMIT_MAX, (req) => req.ip ?? 'unknown'));
+app.use('/api/auth/refresh', createLimiter(env.AUTH_REFRESH_RATE_LIMIT_MAX, (req) => ipKeyGenerator(req.ip ?? 'unknown')));
 app.use('/api/auth', authRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api', partnersRouter);
@@ -75,5 +79,15 @@ app.use('/api/exports', exportsRouter);
 app.use('/api/labels', labelsRouter);
 app.use('/api/system/users', usersRouter);
 app.use('/api/system', systemRouter);
+
+const webDirectory = path.resolve(process.cwd(), 'web');
+app.use(express.static(webDirectory, { maxAge: '30d', immutable: true, index: false }));
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    res.sendFile(path.join(webDirectory, 'index.html'));
+    return;
+  }
+  next();
+});
 app.use((_req, res) => res.status(404).json({ code: 404, message: '接口不存在', data: null }));
 app.use(errorHandler);

@@ -26,3 +26,16 @@ dist-ssr
 # API runtime secrets and local file storage
 api/.env
 api/uploads/
+
+# Imported and generated image data (do not commit)
+ImageOut/
+**/uploads/
+**/materials/
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
+
+# Local verification and deployment scratch files
+_*

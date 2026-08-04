@@ -1,0 +1,24 @@
+# 单 Docker 应用容器：API、React 前端和图片由同一个 Node 容器提供
+# 数据库继续使用 api/.env 中配置的远程 PostgreSQL
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    env_file:
+      - ../api/.env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "7776:3000"
+    volumes:
+      - upload_data:/app/uploads
+    restart: unless-stopped
+    networks: [erp]
+
+networks:
+  erp:
+
+volumes:
+  upload_data:

@@ -90,7 +90,7 @@ router.post('/refresh', async (req, res, next) => {
       throw new HttpError(401, '刷新令牌无效或已过期');
     }
     const session = await prisma.userSession.findUnique({ where: { id: payload.sid }, include: { user: { include: { role: true } } } });
-    if (!session || session.userId !== payload.sub || session.revokedAt || session.expiresAt <= new Date() || session.user.status !== AccountStatus.ACTIVE || !(await bcrypt.compare(payload.jti, session.refreshTokenHash))) {
+    if (!payload.jti || !session || session.userId !== payload.sub || session.revokedAt || session.expiresAt <= new Date() || session.user.status !== AccountStatus.ACTIVE || !(await bcrypt.compare(payload.jti, session.refreshTokenHash))) {
       throw new HttpError(401, '刷新令牌无效或已过期');
     }
     const nextPayload = { sub: session.user.id, sid: session.id, role: session.user.role.code };

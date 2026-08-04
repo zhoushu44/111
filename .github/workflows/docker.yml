@@ -1,16 +1,22 @@
-name: Build and Push Docker Images
+name: Build and Push Docker Image
 
-# 触发分支：main 和 master
 on:
   push:
-    branches: [main, master]
+    branches:
+      - main
+      - master
 
 permissions:
   contents: read
 
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,51 +24,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Docker Hub 账号密码从仓库 Secrets 读取
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      # ---------- API 镜像（fabric-erp-api）----------
-      - name: Extract metadata (api)
-        id: meta-api
+      - name: Generate Docker metadata
+        id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_HUB_USERNAME }}/fabric-erp-api
+          images: ${{ secrets.DOCKER_HUB_USERNAME }}/fabric-erp
           tags: |
-            type=raw,value=2.0
+            type=raw,value=3.0
             type=raw,value=latest
 
-      - name: Build and push api image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./api
-          file: ./api/Dockerfile
-          push: true
-          tags: ${{ steps.meta-api.outputs.tags }}
-          labels: ${{ steps.meta-api.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # ---------- Web 镜像（fabric-erp-web）----------
-      - name: Extract metadata (web)
-        id: meta-web
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKER_HUB_USERNAME }}/fabric-erp-web
-          tags: |
-            type=raw,value=2.0
-            type=raw,value=latest
-
-      - name: Build and push web image
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile.web
+          file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta-web.outputs.tags }}
-          labels: ${{ steps.meta-web.outputs.labels }}
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

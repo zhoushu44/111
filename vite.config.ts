@@ -9,7 +9,7 @@ const projectSrc = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 's
 // https://vite.dev/config/
 export default defineConfig({
   build: {
-    sourcemap: 'hidden',
+    sourcemap: false,
   },
   resolve: {
     alias: {

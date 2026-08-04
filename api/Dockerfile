@@ -4,21 +4,25 @@
 # ---- 构建阶段 ----
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci
 COPY prisma ./prisma
 RUN npx prisma generate
 COPY tsconfig.json ./
 COPY src ./src
-# 注：src/routes/exports.ts 在 Node24 下存在类型严格性问题（sharp 与 ExcelJS 的 Buffer 泛型冲突），
-# 该问题仅影响 tsc 类型检查、不影响运行时。这里允许类型报错继续产出 dist，保证 CI 构建稳定通过。
-RUN npm run build || true
+RUN npm run build
 
 # ---- 运行阶段 ----
 FROM node:24-bookworm-slim AS production
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist

@@ -26,7 +26,7 @@ type Material = {
   providerId?: string | null
   cost?: number | null
   status: 'ACTIVE' | 'DISABLED'
-  images: { id: string; url: string }[]
+  images: { id: string; url: string; thumbnailUrl?: string | null }[]
   createdAt: string
   updatedAt: string
 }
@@ -542,7 +542,7 @@ export default function MaterialFabrics() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
-                          {row.images[0] ? <img src={assetUrl(row.images[0].url)} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-slate-300"><ImageIcon size={16} /></div>}
+                          {row.images[0] ? <img src={assetUrl(row.images[0].thumbnailUrl || row.images[0].url)} alt="" loading="lazy" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-slate-300"><ImageIcon size={16} /></div>}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">

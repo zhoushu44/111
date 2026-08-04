@@ -204,6 +204,10 @@ model MaterialFabric {
   @@index([name])
   @@index([categoryId])
   @@index([providerId])
+  // 列表默认按 updatedAt desc 排序 常带 status 过滤 复合索引避免排序算子
+  @@index([status, updatedAt])
+  // 前端类别筛选为高频场景 复合索引前缀覆盖 categoryId 单字段查询
+  @@index([categoryId, status, updatedAt])
   @@map("material_fabric")
 }
 

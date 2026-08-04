@@ -24,7 +24,7 @@ function download(res: Response, workbook: ExcelJS.Workbook, name: string) { res
 async function embedImage(workbook: ExcelJS.Workbook, filePath: string): Promise<number | null> {
   try {
     const buffer = await sharp(filePath).png().toBuffer();
-    return workbook.addImage({ buffer, extension: 'png' });
+    return workbook.addImage({ buffer: buffer as unknown as ExcelJS.Buffer, extension: 'png' });
   } catch {
     return null;
   }

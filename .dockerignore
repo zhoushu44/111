@@ -1,7 +1,10 @@
-# 前端构建上下文（项目根）排除项
 node_modules
 dist
-api
+api/node_modules
+api/dist
+api/.env
+api/uploads
+ImageOut
 .git
 .workbuddy
 .trae
@@ -9,6 +12,9 @@ api
 .postgres-data
 print-agent
 *.xlsx
+*.jpg
+*.jpeg
+*.png
 *.webp
+*.gif
 *.md
-.env
