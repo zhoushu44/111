@@ -17,6 +17,7 @@ const modules: { key: string; label: string }[] = [
   { key: 'system.users', label: '用户管理' },
   { key: 'system.roles', label: '角色权限' },
   { key: 'system.dictionaries', label: '数据字典' },
+  { key: 'system.ai-config', label: 'AI 识别设置' },
   { key: 'system.logs', label: '操作日志' },
 ]
 

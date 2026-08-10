@@ -12,6 +12,7 @@
 - 分类管理：面料类别、层级分类、启用/停用和排序管理
 - 供应商管理：供应商基础资料、联系方式、业务信息和面料关联
 - 图片管理：JPG、PNG、WEBP 上传，自动转换为 WebP，并生成 200×200 缩略图
+- 图片智能查询：上传面料图片由 AI 视觉识别颜色、纹理、成分等特征并匹配面料库，支持在「系统管理 → AI 识别设置」配置 AI 服务（密钥脱敏存储）
 - 快速检索：按关键字、类别、状态和颜色筛选面料资料
 - 客户选样：创建选样单、维护选样明细、作废/恢复和查询操作记录
 - 标签打印：面料标签预览、批量打印记录和打印代理对接
@@ -68,6 +69,12 @@ CORS_ORIGIN=http://服务器地址:7776
 AUTH_LOGIN_RATE_LIMIT_MAX=10
 AUTH_REFRESH_RATE_LIMIT_MAX=30
 UPLOAD_RATE_LIMIT_MAX=30
+
+# AI 视觉识别（可选，推荐在「系统管理 → AI 识别设置」页面配置，无需写进环境变量）
+# 页面未配置时，以下环境变量作为兜底生效
+# AI_VISION_API_KEY=
+# AI_VISION_BASE_URL=https://api.openai.com/v1
+# AI_VISION_MODEL=gpt-4o
 ```
 
 `DATABASE_URL` 必须指向实际可访问的 PostgreSQL 数据库。生产环境不要使用 `localhost`，除非 PostgreSQL 和应用在同一个容器内。

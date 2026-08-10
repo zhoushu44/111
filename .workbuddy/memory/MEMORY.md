@@ -1,4 +1,4 @@
-# 项目长期记忆 - 敏群商贸 ERP (C:\Users\zs\Desktop\111)
+# 项目长期记忆 - 敏群商贸 ERP (E:\360MoveData\Users\Administrator\Desktop\111)
 
 ## 架构
 - 前端：Vite v6 + React 18 + TS + TailwindCSS + zustand + react-router-dom v7。dev 端口 5177（strictPort），`/api` 代理到 http://localhost:3000
@@ -34,3 +34,13 @@
 - **多端共存**：登录每次新建 UserSession 行不撤销旧会话；logout 仅撤销当前 sessionId。数据互通天然（同一 DB）
 - 种子账号：zhoushu/zs1236547（管理员）、staff/Staff@123456（员工）
 - **实测验证（2026-07-29 02:07，后端运行中）**：staff 登录→访问 /providers 返回 403、/customers 返回 403、/materials 返回 200 且返回字段不含 provider/cost/providerId；admin 同接口均 200 且 /materials 含 provider({code,name})/cost(25)/providerId。staff 连续两次登录 token 不同且首个 token 在二次登录后仍有效（多端共存、不顶替 ✓）。结论：双账户权限需求已实现并实测通过。
+
+## 面料查询页改版（2026-08-09）
+- **大图卡片网格**：文字查询模式从 DataTable 改为 2 列大图卡片（200px 高），每张卡片展示 Item No./名称/成分/克重/幅宽/工厂编号/类别/状态，管理员额外可见供应商/成本
+- **批量扫码选样**：顶部扫码输入框，回车连续加入选样清单（不逐次确认），重复扫自动累加数量，异步从服务端搜索不在当前列表的料号，扫完选客户→一键生成选样单（POST /sample-chooses）→跳转选样查询页
+- **搜索范围扩展**：后端 materials.ts 的 keyword OR 从 4 字段扩到 9 字段（新增 composition/construction/width/weight/factoryNo）
+- **分页**：20 条/页，显示「共 N 项面料」+ 分页栏
+- **图片容错**：优先用 thumbnailUrl（webp 缩略图），加载失败用 React 状态 failedImgs 追踪并显示占位符
+- **连续扫码焦点保持**：handleScan 改 async，refocusScan() 用 setTimeout(50ms) 确保 DOM 更新后重新聚焦
+- 改动文件：`src/pages/MaterialQuery.tsx`（前端）、`api/src/routes/materials.ts`（后端 keyword 扩展）
+- **注意**：本地 api/uploads/materials/ 目录为空（数据库来自远程，图片文件不在本机），图片全部 500 → 已用占位符优雅处理
