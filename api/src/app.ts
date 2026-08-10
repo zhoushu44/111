@@ -60,7 +60,18 @@ app.use(
   }),
 );
 
-app.use(helmet());
+// helmet 默认 CSP 含 upgrade-insecure-requests，会把 HTTP 页面内的图片/接口请求
+// 强制升级为 HTTPS。部署环境可能只有 HTTP（如 192.6.121.16:7776），升级后请求全部
+// 失败导致图片裂图、页面白屏。这里关闭该指令，兼容 HTTP 与 HTTPS 两种访问方式；
+// HSTS 仅在 HTTPS 响应中生效，不影响 HTTP 访问，故保留。
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      'upgrade-insecure-requests': null,
+    },
+  },
+}));
 app.use(compression());
 app.use(cors({ origin: corsOrigins.length ? corsOrigins : false, credentials: false }));
 app.use(express.json({ limit: '1mb' }));
