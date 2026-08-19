@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Printer, X } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useSearchParams } from 'react-router-dom'
 import PageHeader from '@/components/PageHeader'
-import { api, assetUrl } from '@/lib/api'
+import { api } from '@/lib/api'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { type LabelVariant } from '@/components/LabelPrintMenu'
 
@@ -24,25 +24,33 @@ export default function LabelPrint() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [scannedIds, setScannedIds] = useState<string[]>([])
-  const [materialIndex, setMaterialIndex] = useState<Record<string, string>>({})
+  const scannedIdsRef = useRef<string[]>([])
   const [scanHint, setScanHint] = useState('')
+  const scanQueue = useRef(Promise.resolve())
   // 本地打印代理（software，复刻老系统经 HUANSI 服务直连打印机）
   // 自动识别：本机代理在线则走代理直连打印机，否则退回浏览器打印
   const [agentMode, setAgentMode] = useState<'auto' | 'agent' | 'browser'>('auto')
   const [agentUrl, setAgentUrl] = useState('http://localhost:8790')
   const [agentOnline, setAgentOnline] = useState(false)
-  const [agentCheck, setAgentCheck] = useState<'checking' | 'ok' | 'err'>('checking')
   const [agentMsg, setAgentMsg] = useState('')
   const useAgent = agentMode === 'agent' || (agentMode === 'auto' && agentOnline)
 
+  const requestLabels = async (mode: 'PREVIEW' | 'PRINT', scanIds = scannedIds) => {
+    const payload = { temporaryRemark: temporaryRemark || null, remarkMode, copies, mode, variant, header }
+    if (sampleChooseId) return (await api.post<{ labels: Label[] }>(`/labels/sample-choose/${sampleChooseId}`, payload)).labels
+
+    const requests: Promise<{ labels: Label[] }>[] = []
+    if (materialIds.length) requests.push(api.post('/labels/preview', { materialIds, ...payload }))
+    scanIds.forEach((id) => requests.push(api.post('/labels/preview', { materialIds: [id], ...payload })))
+    return (await Promise.all(requests)).flatMap((result) => result.labels)
+  }
+
   const callLabels = async (mode: 'PREVIEW' | 'PRINT') => {
-    if (!hasParams) return
+    if (!sampleChooseId && !materialIds.length && !scannedIds.length) return
     setLoading(true); setMessage('')
     try {
-      const payload = { temporaryRemark: temporaryRemark || null, remarkMode, copies, mode, variant, header }
-      const effectiveIds = [...materialIds, ...scannedIds]
-      const result = sampleChooseId ? await api.post<{ labels: Label[] }>(`/labels/sample-choose/${sampleChooseId}`, payload) : await api.post<{ labels: Label[] }>('/labels/preview', { materialIds: effectiveIds, ...payload })
-      setLabels(result.labels)
+      const nextLabels = await requestLabels(mode)
+      setLabels(nextLabels)
       if (mode === 'PRINT') {
         if (useAgent) {
           // 发送到本地打印代理（software），由它真正输出到标签打印机，等价于老系统经 HUANSI 服务打印
@@ -50,11 +58,11 @@ export default function LabelPrint() {
             const resp = await fetch(`${agentUrl.replace(/\/$/, '')}/api/print/label`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ labels: result.labels }),
+              body: JSON.stringify({ labels: nextLabels }),
             })
             const data = await resp.json()
             if (!resp.ok || !data.ok) throw new Error((data.errors && data.errors.join('；')) || '打印代理返回错误')
-            setMessage(`已通过本地打印代理发送 ${data.printed ?? result.labels.length} 张到标签打印机。`)
+            setMessage(`已通过本地打印代理发送 ${data.printed ?? nextLabels.length} 张到标签打印机。`)
           } catch (error) {
             setMessage('打印代理发送失败：' + (error instanceof Error ? error.message : String(error)) + '（可改回浏览器打印，或检查代理是否启动）')
           }
@@ -68,18 +76,6 @@ export default function LabelPrint() {
 
   useEffect(() => { if (hasParams) void callLabels('PREVIEW') }, [sampleChooseId, materialIds.join(',')])
 
-  // 建立 Item No. → 面料ID 索引，供扫码追加标签使用（仅物料标签路线）
-  useEffect(() => {
-    if (sampleChooseId || !materialIds.length) return
-    void api.get<{ list: { id: string; itemNo: string }[] }>('/materials?pageSize=1000&status=ACTIVE')
-      .then((res) => {
-        const idx: Record<string, string> = {}
-        res.list.forEach((m) => { idx[m.itemNo.trim().toLowerCase()] = m.id })
-        setMaterialIndex(idx)
-      })
-      .catch(() => {})
-  }, [sampleChooseId, materialIds.length])
-
   // 本地打印代理在线检测（自动识别）：始终探测，决定是否走代理
   useEffect(() => {
     let alive = true
@@ -87,13 +83,11 @@ export default function LabelPrint() {
       .then((r) => {
         if (!alive) return
         setAgentOnline(r.ok)
-        setAgentCheck(r.ok ? 'ok' : 'err')
         setAgentMsg(r.ok ? '本地代理在线' : '未检测到本地代理')
       })
       .catch(() => {
         if (!alive) return
         setAgentOnline(false)
-        setAgentCheck('err')
         setAgentMsg('未检测到本地代理（将使用浏览器打印）')
       })
     check()
@@ -101,16 +95,30 @@ export default function LabelPrint() {
     return () => { alive = false; window.clearInterval(t) }
   }, [agentUrl])
 
-  // 扫描器输入：复刻老系统"扫面料 → 打标签"流程；扫描 Item No. 追加到打印批次
+  // 扫描器输入：每次按 Item No. 查询并按扫描顺序追加；重复扫码保留为独立标签。
   const handleScan = (scanned: string) => {
-    const itemNo = scanned.trim().toLowerCase()
-    const id = materialIndex[itemNo]
-    if (!id) { setScanHint(`未找到 Item No.：${scanned.trim()}`); window.setTimeout(() => setScanHint(''), 2600); return }
-    setScannedIds((cur) => (cur.includes(id) ? cur : [...cur, id]))
-    setScanHint(`已扫码加入：${scanned.trim()}`); window.setTimeout(() => setScanHint(''), 2200)
+    const itemNo = scanned.trim()
+    if (!itemNo) return
+    scanQueue.current = scanQueue.current.then(async () => {
+      setLoading(true)
+      setScanHint(`正在查询 Item No.：${itemNo}`)
+      try {
+        const result = await api.get<{ list: { id: string; itemNo: string }[] }>(`/materials?pageSize=1&itemNo=${encodeURIComponent(itemNo)}&status=ACTIVE`)
+        const material = result.list[0]
+        if (!material) { setScanHint(`未找到 Item No.：${itemNo}`); return }
+        const nextIds = [...scannedIdsRef.current, material.id]
+        scannedIdsRef.current = nextIds
+        setScannedIds(nextIds)
+        setLabels(await requestLabels('PREVIEW', nextIds))
+        setScanHint(`已扫码加入并更新预览：${material.itemNo}`)
+      } catch (error) {
+        setScanHint(error instanceof Error ? error.message : `查询 Item No. 失败：${itemNo}`)
+      } finally {
+        setLoading(false)
+      }
+    })
   }
-  const { scanning } = useBarcodeScanner({ enabled: !sampleChooseId && materialIds.length > 0, onScan: handleScan })
-  if (!hasParams) return <div><PageHeader title="标签打印" description="从面料、选样单或 URL 参数进入标签打印。" /><div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-16 text-center"><p className="mb-2 text-lg font-medium text-slate-400">暂无可打印标签</p><p className="text-sm text-slate-400">请从面料资料、选样清单或选样记录中点击“标签/预览”进入本页。</p></div></div>
+  const { scanning } = useBarcodeScanner({ enabled: !sampleChooseId, onScan: handleScan })
 
   return <div>
     <style>{`@media print {
@@ -137,7 +145,7 @@ export default function LabelPrint() {
       {agentMsg && <span className="text-xs text-slate-500">{agentMsg}</span>}
     </div>
     <div className="mb-4 flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200 bg-white p-4">
-      {!sampleChooseId && materialIds.length > 0 && (
+      {!sampleChooseId && (
         <label>扫码追加<input
           className="ml-2 rounded-lg border border-slate-200 p-2 text-sm"
           placeholder="扫面料 Item No. 追加标签"
@@ -149,13 +157,13 @@ export default function LabelPrint() {
     {!sampleChooseId && scannedIds.length > 0 && (
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
         <span>已扫码追加 {scannedIds.length} 个：</span>
-        {scannedIds.map((id) => <span key={id} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">…{id.slice(-4)}<button className="text-slate-400 hover:text-red-500" onClick={() => setScannedIds((cur) => cur.filter((x) => x !== id))}><X size={12} /></button></span>)}
-        <button className="text-slate-400 underline" onClick={() => setScannedIds([])}>清空</button>
+        {scannedIds.map((id, index) => <span key={`${id}-${index}`} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">…{id.slice(-4)}<button className="text-slate-400 hover:text-red-500" onClick={() => { const next = scannedIds.filter((_, i) => i !== index); scannedIdsRef.current = next; setScannedIds(next); void requestLabels('PREVIEW', next).then(setLabels) }}><X size={12} /></button></span>)}
+        <button className="text-slate-400 underline" onClick={() => { scannedIdsRef.current = []; setScannedIds([]); void requestLabels('PREVIEW', []).then(setLabels) }}>清空</button>
         {scanHint && <span className={scanHint.startsWith('未找到') ? 'text-red-600' : 'text-emerald-600'}>{scanHint}</span>}
       </div>
     )}
     {!sampleChooseId && scannedIds.length === 0 && scanHint && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{scanHint}</p>}
     {loading && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">加载中…</p>}{message && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{message}</p>}{!loading && !labels.length && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">未获取到可打印标签。</p>}
-    <div id="label-print-area">{labels.map((label, index) => <div key={`${label.data.materialId}-${index}`} className="print-label m-3 flex h-[40mm] w-[70mm] gap-[2mm] overflow-hidden rounded border border-slate-200 bg-white p-[2mm] text-[9px] leading-[1.35]"><div className="min-w-0 flex-1">{header && <div className="mb-[1mm] flex items-start justify-between gap-2"><b className="text-[10px]">敏群商贸（上海）有限公司</b>{label.data.imageUrl && <img className="h-8 w-8 object-cover" src={assetUrl(label.data.imageUrl)} alt="面料图片" />}</div>}{variant === 'SPEC' ? (<><p className="truncate"><b>货号:</b> {label.data.itemNo}</p><p className="truncate"><b>规格:</b> {label.data.specification || '-'}</p></>) : (<><p className="truncate"><b>货号:</b> {label.data.itemNo}</p><p className="truncate"><b>名称:</b> {label.data.name}</p><p className="truncate"><b>规格:</b> {label.data.specification || '-'}</p><p className="truncate"><b>成分:</b> {label.data.composition || '-'}</p><p><b>幅宽/克重:</b> {label.data.width || '-'} / {label.data.weight || '-'}</p><p className="line-clamp-2"><b>备注:</b> {label.data.remark || '-'}</p></>)}</div><div className="shrink-0 bg-white pt-[1mm]"><QRCodeSVG value={label.qrValue} size={78} level="M" includeMargin={false} /></div></div>)}</div>
+    <div id="label-print-area">{labels.map((label, index) => <div key={`${label.data.materialId}-${index}`} className="print-label m-3 flex h-[40mm] w-[70mm] gap-[2mm] overflow-hidden rounded border border-slate-200 bg-white p-[2mm] text-[9px] leading-[1.35]"><div className="min-w-0 flex-1">{header && <div className="mb-[1mm]"><b className="text-[10px]">MINQUN TRADING (SHANGHAI) CO., LTD.</b></div>}{variant === 'SPEC' ? (<><p className="truncate"><b>Item No.:</b> {label.data.itemNo}</p><p className="truncate"><b>Specification:</b> {label.data.specification || '-'}</p></>) : (<><p className="truncate"><b>Item No.:</b> {label.data.itemNo}</p><p className="truncate"><b>Specification:</b> {label.data.specification || '-'}</p><p className="whitespace-pre-wrap break-words"><b>Composition:</b> {label.data.composition || '-'}</p><p><b>Width / Weight:</b> {label.data.width || '-'} / {label.data.weight || '-'}</p><p className="line-clamp-2"><b>Remark:</b> {label.data.remark || '-'}</p></>)}</div><div className="shrink-0 bg-white pt-[1mm]"><QRCodeSVG value={label.qrValue} size={60} level="M" includeMargin={false} /></div></div>)}</div>
   </div>
 }

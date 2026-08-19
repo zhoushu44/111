@@ -36,7 +36,7 @@ jobs:
         with:
           images: ${{ secrets.DOCKER_HUB_USERNAME }}/fabric-erp
           tags: |
-            type=raw,value=5.0
+            type=raw,value=6.0
             type=raw,value=latest
 
       - name: Build and push image
