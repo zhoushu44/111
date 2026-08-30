@@ -64,7 +64,7 @@ router.get('/operators', async (_req, res, next) => { try {
 router.get('/', async (req, res, next) => { try {
   const query = listSchema.parse(req.query);
   const where = { ...(query.documentNo ? { documentNo: { contains: query.documentNo, mode: 'insensitive' as const } } : {}), ...(query.customer ? { customer: { name: { contains: query.customer, mode: 'insensitive' as const } } } : {}), ...(query.customerId ? { customerId: query.customerId } : {}), ...(query.itemNo ? { items: { some: { itemNoSnapshot: { contains: query.itemNo, mode: 'insensitive' as const } } } } : {}), ...(query.createdById ? { createdById: query.createdById } : {}), ...(query.status ? { status: query.status } : {}), ...(query.dateFrom || query.dateTo ? { createdAt: { ...(query.dateFrom ? { gte: query.dateFrom } : {}), ...(query.dateTo ? { lte: query.dateTo } : {}) } } : {}) };
-  const [list, total] = await prisma.$transaction([prisma.sampleChoose.findMany({ where, include: { customer: { select: { id: true, code: true, name: true } }, _count: { select: { items: true } } }, orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * query.pageSize, take: query.pageSize }), prisma.sampleChoose.count({ where })]);
+  const [list, total] = await prisma.$transaction([prisma.sampleChoose.findMany({ where, include: { customer: { select: { id: true, code: true, name: true } }, createdBy: { select: { id: true, username: true, displayName: true } }, _count: { select: { items: true } } }, orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * query.pageSize, take: query.pageSize }), prisma.sampleChoose.count({ where })]);
   ok(res, { list, total, page: query.page, pageSize: query.pageSize });
 } catch (error) { next(error); } });
 
@@ -75,7 +75,7 @@ router.get('/:id', async (req, res, next) => { try {
     include: {
       customer: true,
       createdBy: { select: { id: true, username: true, displayName: true } },
-      items: { orderBy: { createdAt: 'asc' }, include: { material: { select: { id: true, itemNo: true, name: true, specification: true, unit: true, composition: true, width: true, weight: true, construction: true, factoryNo: true, images: { orderBy: { sortOrder: 'asc' } } } } } },
+      items: { orderBy: { createdAt: 'asc' }, include: { material: { select: { id: true, itemNo: true, name: true, specification: true, unit: true, composition: true, width: true, weight: true, construction: true, color: true, factoryNo: true, cost: true, images: { orderBy: { sortOrder: 'asc' } } } } } },
     },
   });
   if (!item) throw new HttpError(404, '客户选样单不存在'); ok(res, item);

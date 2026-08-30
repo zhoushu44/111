@@ -28,5 +28,7 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY prisma ./prisma
+# seed-assets（公司 Logo 等种子静态资源）：seed 时复制到 uploads 持久卷
+COPY seed-assets ./seed-assets
 EXPOSE 3000
 CMD ["node", "dist/server.js"]

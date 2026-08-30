@@ -31,6 +31,8 @@ RUN npm ci --omit=dev
 COPY --from=api-build /app/dist ./dist
 COPY --from=api-build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=api-build /app/prisma ./prisma
+# seed-assets（公司 Logo 等种子静态资源，源文件在 api/seed-assets）：seed 时复制到 uploads 持久卷
+COPY api/seed-assets ./seed-assets
 COPY --from=web-build /frontend/dist ./web
 RUN mkdir -p /app/uploads
 EXPOSE 3000
