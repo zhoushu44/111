@@ -7,10 +7,10 @@ import { useAuthStore } from '@/store/authStore'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import LabelPrintMenu from '@/components/LabelPrintMenu'
 
-type Material = { id: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; width?: string | null; unit?: string | null; factoryNo?: string | null; images: { url: string }[] }
+type Material = { id: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; width?: string | null; weight?: string | null; construction?: string | null; color?: string | null; unit?: string | null; factoryNo?: string | null; images: { url: string }[] }
 type Customer = { id: string; code: string; name: string }
 type Selected = Material & { quantity: number; remark: string }
-type Detail = { id: string; documentNo: string; customerId: string; customerName: string; status: 'ACTIVE' | 'VOIDED'; remark?: string | null; contact?: string | null; currency?: string | null; requirement?: string | null; expressNo?: string | null; expressCompany?: string | null; salesperson?: string | null; sampleType?: string | null; unsampledType?: string | null; printedAt?: string | null; createdAt: string; items: { id: string; materialId: string; itemNoSnapshot: string; nameSnapshot: string; specSnapshot?: string | null; unitSnapshot?: string | null; compositionSnapshot?: string | null; widthSnapshot?: string | null; factoryNoSnapshot?: string | null; quantity: number; remark?: string | null }[] }
+type Detail = { id: string; documentNo: string; customerId: string; customerName: string; status: 'ACTIVE' | 'VOIDED'; remark?: string | null; contact?: string | null; currency?: string | null; requirement?: string | null; expressNo?: string | null; expressCompany?: string | null; salesperson?: string | null; sampleType?: string | null; unsampledType?: string | null; printedAt?: string | null; createdAt: string; items: { id: string; materialId: string; itemNoSnapshot: string; nameSnapshot: string; specSnapshot?: string | null; unitSnapshot?: string | null; compositionSnapshot?: string | null; widthSnapshot?: string | null; weightSnapshot?: string | null; constructionSnapshot?: string | null; factoryNoSnapshot?: string | null; quantity: number; remark?: string | null }[] }
 
 const emptyExtra = { contact: '', currency: 'CNY', requirement: '', expressNo: '', expressCompany: '', salesperson: '', sampleType: '', unsampledType: '', remark: '' }
 
@@ -61,11 +61,11 @@ export default function SampleChoose() {
         expressNo: detail.expressNo ?? '', expressCompany: detail.expressCompany ?? '', salesperson: detail.salesperson ?? '',
         sampleType: detail.sampleType ?? '', unsampledType: detail.unsampledType ?? '', remark: detail.remark ?? '',
       })
-      setItems(detail.items.map((item) => ({
-        id: item.materialId, itemNo: item.itemNoSnapshot, name: item.nameSnapshot, specification: item.specSnapshot,
-        composition: item.compositionSnapshot, width: item.widthSnapshot, unit: item.unitSnapshot, factoryNo: item.factoryNoSnapshot,
-        images: [], quantity: item.quantity, remark: item.remark ?? '',
-      })))
+       setItems(detail.items.map((item) => ({
+         id: item.materialId, itemNo: item.itemNoSnapshot, name: item.nameSnapshot, specification: item.specSnapshot,
+         composition: item.compositionSnapshot, width: item.widthSnapshot, weight: item.weightSnapshot, construction: item.constructionSnapshot, unit: item.unitSnapshot, factoryNo: item.factoryNoSnapshot,
+         images: [], quantity: item.quantity, remark: item.remark ?? '',
+       })))
     }).catch((error: Error) => setMessage(error.message))
   }, [editId, customers])
 
@@ -209,9 +209,9 @@ export default function SampleChoose() {
           <label className={labelCls}>选样类型</label>
           <input className={`${fieldCls} w-full`} value={extra.sampleType} onChange={(e) => setExtra({ ...extra, sampleType: e.target.value })} placeholder="如：新样 / 翻单" />
         </div>
-        <div>
-          <label className={labelCls}>未样类型</label>
-          <input className={`${fieldCls} w-full`} value={extra.unsampledType} onChange={(e) => setExtra({ ...extra, unsampledType: e.target.value })} placeholder="未样分类" />
+         <div>
+          <label className={labelCls}>来样类型</label>
+          <input className={`${fieldCls} w-full`} value={extra.unsampledType} onChange={(e) => setExtra({ ...extra, unsampledType: e.target.value })} placeholder="来样分类" />
         </div>
         <div>
           <label className={labelCls}>快递单号</label>
@@ -258,12 +258,14 @@ export default function SampleChoose() {
       { title: '图片', render: (row) => row.images[0] ? <img className="h-12 w-12 object-cover" src={assetUrl(row.images[0].url)} alt="面料" /> : '-' },
       { title: 'Item No.', render: (row) => row.itemNo },
       { title: '面料名称', render: (row) => row.name },
-      { title: '规格', render: (row) => row.specification || '-' },
-      { title: '成分', render: (row) => row.composition || '-' },
-      { title: '幅宽', render: (row) => row.width || '-' },
-      { title: '单位', render: (row) => row.unit || '-' },
       { title: '工厂编号', render: (row) => row.factoryNo || '-' },
+      { title: '颜色', render: (row) => row.color || '-' },
       { title: '数量', render: (row) => <input type="number" min="1" value={row.quantity} onChange={(event) => setItems((current) => current.map((item) => item.id === row.id ? { ...item, quantity: Math.max(1, Number(event.target.value) || 1) } : item))} /> },
+      { title: '单位', render: (row) => row.unit || '-' },
+      { title: '成分', render: (row) => row.composition || '-' },
+      { title: '规格', render: (row) => row.specification || '-' },
+      { title: '幅宽', render: (row) => row.width || '-' },
+      { title: '克重', render: (row) => row.weight || '-' },
       { title: '备注', render: (row) => <input value={row.remark} onChange={(event) => setItems((current) => current.map((item) => item.id === row.id ? { ...item, remark: event.target.value } : item))} /> },
       { title: '操作', render: (row) => <button className="text-red-600 hover:underline" onClick={() => setItems((current) => current.filter((item) => item.id !== row.id))}>删除</button> },
     ]} />

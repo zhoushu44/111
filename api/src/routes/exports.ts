@@ -55,34 +55,58 @@ router.post('/sample-chooses/:id', async (req, res, next) => { try {
   const sheet = workbook.addWorksheet('客户选样');
   sheet.columns = columns;
 
-  // 客户公司抬头（客户全称 + 地址 + TEL/FAX）
-  const headerCustomer = choose.customer;
-  sheet.mergeCells(`A1:${lastColLetter}1`);
-  const cName = sheet.getCell(1, 1);
-  cName.value = headerCustomer?.fullName || headerCustomer?.name || choose.customerName;
-  cName.font = { bold: true, size: 16 };
-  cName.alignment = { horizontal: 'center', vertical: 'middle' };
-  sheet.mergeCells(`A2:${lastColLetter}2`);
-  sheet.getCell('A2').value = headerCustomer?.address ?? '';
-  sheet.getCell('A2').font = { size: 9 }; sheet.getCell('A2').alignment = { horizontal: 'center' };
-  sheet.mergeCells(`A3:${lastColLetter}3`);
-  sheet.getCell('A3').value = `TEL: ${headerCustomer?.phone ?? '—'}   FAX: ${headerCustomer?.fax ?? '—'}`;
-  sheet.getCell('A3').font = { size: 9 }; sheet.getCell('A3').alignment = { horizontal: 'center' };
+  // 公司抬头：逐字对齐老系统 报价单.xls 运行时输出（Logo 图 + 地址 + TEL/FAX + 星号线），
+  // 数据取自系统「本地公司信息」，Logo 为老系统 报价单.xls 抬头原图（seed 预置 /uploads/company-logo.png）
+  const company = await prisma.companyInfo.findFirst();
+  const companyName = company?.companyName || 'Mint Chance Textile Co.,Ltd';
+  const companyAddress = company?.address ?? 'Room 401-402  No 2, Lane 288 Tongxie Road , Changning District, Shanghai 200335, China';
+  const companyTel = company?.phone ?? '86-21-51879008';
+  const companyFax = company?.fax ?? '86-21-52045389';
+  // 星号线宽度随列宽自适应，铺满表格（老系统为整行星号分隔线）
+  const totalColWidth = columns.reduce((sum, col) => sum + col.width, 0);
+  const dividerLine = '*'.repeat(Math.max(40, Math.min(160, Math.round((totalColWidth * 7) / 8.6))));
+
+  let cursorRow = 1;
+  const headerLine = (value: string, font: { bold?: boolean; size?: number; name?: string }, height?: number) => {
+    sheet.mergeCells(`A${cursorRow}:${lastColLetter}${cursorRow}`);
+    const cell = sheet.getCell(cursorRow, 1);
+    cell.value = value;
+    cell.font = font;
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    if (height) sheet.getRow(cursorRow).height = height;
+    cursorRow++;
+  };
+
+  const logoPath = company?.logoUrl?.startsWith('/uploads/') ? path.resolve(process.cwd(), company.logoUrl.slice(1)) : '';
+  const logoImageId = logoPath && existsSync(logoPath) ? await embedImage(workbook, logoPath) : null;
+  if (logoImageId !== null) {
+    // 老系统输出中公司名包含在 Logo 图片内，故有图时不再重复输出文本公司名
+    headerLine(companyAddress, { bold: true, size: 9, name: 'Arial' }, 50);
+    sheet.addImage(logoImageId, { tl: { col: 0, row: 0 }, ext: { width: 128, height: 66 } });
+  } else {
+    headerLine(companyName, { bold: true, size: 16 }, 22);
+    headerLine(companyAddress, { bold: true, size: 9, name: 'Arial' });
+  }
+  headerLine(`TEL : ${companyTel}   FAX : ${companyFax}`, { bold: true, size: 9, name: 'Arial' });
+  headerLine(dividerLine, { bold: true, size: 12, name: 'Arial' });
+  cursorRow++;
 
   // 标题
-  sheet.mergeCells(`A5:${lastColLetter}5`);
-  sheet.getCell('A5').value = 'QUOTATION LIST';
-  sheet.getCell('A5').font = { bold: true, size: 18 };
-  sheet.getCell('A5').alignment = { horizontal: 'center' };
+  headerLine('QUOTATION LIST', { bold: true, size: 24 }, 33);
+  cursorRow++;
 
-  // 元数据 Customer / DATE
+  // 元数据 Customer / DATE / ATTN
   const d = new Date(choose.createdAt);
   const dateText = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}.${d.getFullYear()}`;
-  sheet.getCell('A7').value = `Customer: ${choose.customerName}`; sheet.getCell('A7').font = { bold: true };
-  sheet.getCell(`${lastColLetter}7`).value = `DATE: ${dateText}`; sheet.getCell(`${lastColLetter}7`).font = { bold: true }; sheet.getCell(`${lastColLetter}7`).alignment = { horizontal: 'right' };
+  const metaRow = cursorRow++;
+  const attnRow = cursorRow++;
+  sheet.getCell(metaRow, 1).value = `Customer: ${choose.customerName}`; sheet.getCell(metaRow, 1).font = { size: 10 };
+  sheet.getCell(metaRow, lastCol).value = `DATE: ${dateText}`; sheet.getCell(metaRow, lastCol).font = { size: 10 }; sheet.getCell(metaRow, lastCol).alignment = { horizontal: 'right' };
+  sheet.getCell(attnRow, 1).value = `ATTN: ${choose.contact ?? ''}`; sheet.getCell(attnRow, 1).font = { size: 10 };
+  cursorRow++;
 
-  // 表头（第 9 行）
-  const headerRowNum = 9;
+  // 表头
+  const headerRowNum = cursorRow;
   columns.forEach((col, i) => {
     const cell = sheet.getCell(headerRowNum, i + 1);
     cell.value = col.header;
@@ -114,8 +138,9 @@ router.post('/sample-chooses/:id', async (req, res, next) => { try {
     columns.forEach((_c, i) => {
       const cell = sheet.getCell(rowNum, i + 1);
       cell.border = BORDER;
-      cell.alignment = { vertical: 'middle', horizontal: i + 1 === costColIndex ? 'right' : 'left', wrapText: i + 1 === lastCol };
-      if (i + 1 === costColIndex && typeof cell.value === 'number') cell.numFmt = '0.00';
+      const alignRight = i + 1 === costColIndex;
+      cell.alignment = { vertical: 'middle', horizontal: alignRight ? 'right' : 'left', wrapText: !alignRight };
+      if (alignRight && typeof cell.value === 'number') cell.numFmt = '0.00';
     });
     if (options.includeImage) {
       const imageUrl = item.material.images[0]?.url ?? '';

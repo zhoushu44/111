@@ -38,7 +38,7 @@ function mergeItems(items: z.infer<typeof createSchema>['items']) {
 function documentNo(prefix: string) { const now = new Date(); return `${prefix}${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(randomInt(0, 10000)).padStart(4, '0')}`; }
 
 // 从面料记录构造明细快照数据
-function buildItemCreate(materialId: string, quantity: number, remark: string | null | undefined, material: { id: string; itemNo: string; name: string; specification: string | null; unit: string; composition: string | null; width: string | null; factoryNo: string | null }) {
+function buildItemCreate(materialId: string, quantity: number, remark: string | null | undefined, material: { id: string; itemNo: string; name: string; specification: string | null; unit: string; composition: string | null; width: string | null; weight: string | null; construction: string | null; factoryNo: string | null }) {
   return {
     materialId,
     itemNoSnapshot: material.itemNo,
@@ -47,13 +47,15 @@ function buildItemCreate(materialId: string, quantity: number, remark: string | 
     unitSnapshot: material.unit,
     compositionSnapshot: material.composition,
     widthSnapshot: material.width,
+    weightSnapshot: material.weight,
+    constructionSnapshot: material.construction,
     factoryNoSnapshot: material.factoryNo,
     quantity,
     remark: remark ?? null,
   };
 }
 
-const materialSelectForSnapshot = { id: true, itemNo: true, name: true, specification: true, unit: true, composition: true, width: true, factoryNo: true } as const;
+const materialSelectForSnapshot = { id: true, itemNo: true, name: true, specification: true, unit: true, composition: true, width: true, weight: true, construction: true, factoryNo: true } as const;
 
 router.get('/operators', async (_req, res, next) => { try {
   const operators = await prisma.userAccount.findMany({ where: { sampleChooses: { some: {} } }, select: { id: true, displayName: true, username: true }, orderBy: [{ displayName: 'asc' }, { username: 'asc' }] }); ok(res, operators);
@@ -73,7 +75,7 @@ router.get('/:id', async (req, res, next) => { try {
     include: {
       customer: true,
       createdBy: { select: { id: true, username: true, displayName: true } },
-      items: { orderBy: { createdAt: 'asc' }, include: { material: { select: { id: true, itemNo: true, name: true, specification: true, unit: true, composition: true, width: true, factoryNo: true, images: { orderBy: { sortOrder: 'asc' } } } } } },
+      items: { orderBy: { createdAt: 'asc' }, include: { material: { select: { id: true, itemNo: true, name: true, specification: true, unit: true, composition: true, width: true, weight: true, construction: true, factoryNo: true, images: { orderBy: { sortOrder: 'asc' } } } } } },
     },
   });
   if (!item) throw new HttpError(404, '客户选样单不存在'); ok(res, item);

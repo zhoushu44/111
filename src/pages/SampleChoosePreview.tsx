@@ -9,12 +9,15 @@ type CustomerDetail = { name: string; fullName?: string | null; address?: string
 type Detail = { id: string; documentNo: string; customerName: string; contact?: string | null; createdAt: string; remark?: string | null; customer: CustomerDetail; createdBy: { displayName: string; username: string }; items: Item[] }
 
 const EMPTY_ROWS = 20
+// 抬头星号分隔线（与导出一致，老系统 报价单.xls 为整行星号），超宽部分打印时隐藏
+const HEADER_ASTERISKS = '*'.repeat(110)
 
 export default function SampleChoosePreview() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const admin = useAuthStore((state) => state.user?.role === 'admin')
   const [detail, setDetail] = useState<Detail | null>(null)
+  const [company, setCompany] = useState<{ companyName: string; address: string; phone: string; fax: string; logoUrl?: string | null } | null>(null)
   const [showSpec, setShowSpec] = useState(true)
   const [showImage, setShowImage] = useState(false)
   const [showCost, setShowCost] = useState(false)
@@ -24,8 +27,12 @@ export default function SampleChoosePreview() {
   useEffect(() => {
     if (!id) return
     setLoading(true); setMessage('')
-    api.get<Detail>(`/sample-chooses/${id}`).then((d) => {
+    void Promise.all([
+      api.get<Detail>(`/sample-chooses/${id}`),
+      api.get<{ companyName: string; address: string; phone: string; fax: string; logoUrl?: string | null }>('/system/company-info'),
+    ]).then(([d, info]) => {
       setDetail(d)
+      setCompany(info)
       const hasCost = d.items.some((item) => item.material.cost != null)
       setShowSpec(true); setShowImage(false); setShowCost(admin && hasCost)
     })
@@ -92,29 +99,32 @@ export default function SampleChoosePreview() {
       </div>
 
       <div id="quotation-print-area" className="mx-auto max-w-[210mm] bg-white px-2 text-[11pt] text-black">
-        {/* 客户公司抬头 */}
-        <div className="flex items-start gap-3 pb-1">
-          <div className="flex-1 text-center">
-            <div className="text-[16pt] font-bold leading-tight">{detail.customer.fullName || detail.customer.name || detail.customerName}</div>
-            <div className="mt-0.5 text-[8.5pt] leading-snug text-slate-700">{detail.customer.address ?? ''}</div>
-            <div className="text-[8.5pt] leading-snug text-slate-700">TEL: {detail.customer.phone ?? '—'}  FAX: {detail.customer.fax ?? '—'}</div>
+        {/* 公司抬头（与老系统 报价单.xls 输出一致：Logo 图 + 地址 + TEL/FAX，公司名含在 Logo 内） */}
+        <div className="relative flex min-h-[52px] items-center justify-center">
+          {company?.logoUrl ? (
+            <img src={assetUrl(company.logoUrl)} alt="" className="absolute left-0 top-0 h-[50px] w-auto" />
+          ) : (
+            <div className="absolute left-0 top-0 text-[13pt] font-bold leading-tight">{company?.companyName || 'Mint Chance Textile Co.,Ltd'}</div>
+          )}
+          <div className="text-center">
+            <div className="text-[9pt] font-bold leading-snug">{company?.address ?? ''}</div>
+            <div className="text-[9pt] font-bold leading-snug">TEL : {company?.phone ?? ''}&nbsp;&nbsp; FAX : {company?.fax ?? ''}</div>
           </div>
         </div>
-        <div className="my-1 text-center text-[8.5pt] tracking-[0.3em] text-slate-500">
-          -------------------------------------------
-        </div>
+        <div className="overflow-hidden whitespace-nowrap text-center text-[12pt] font-bold leading-none">{HEADER_ASTERISKS}</div>
 
         {/* 主标题 */}
-        <div className="my-3 text-center text-[18pt] font-bold tracking-wider">QUOTATION LIST</div>
+        <div className="my-3 text-center text-[24pt] font-bold tracking-wider">QUOTATION LIST</div>
 
         {/* 元数据：左 Customer/ATTN，右 DATE */}
         <div className="mb-3 flex items-start text-[10.5pt]">
           <div className="flex-1 space-y-1">
-            <div><b>Customer:</b> {detail.customerName}</div>
-            <div><b>ATTN:</b> {detail.contact ?? ''}</div>
+            <div>Customer: {detail.customerName}</div>
+            <div>Document No.: {detail.documentNo}</div>
+            <div>ATTN: {detail.contact ?? ''}</div>
           </div>
           <div className="w-44 text-right">
-            <b>DATE:</b> {dateText}
+            DATE: {dateText}
           </div>
         </div>
 

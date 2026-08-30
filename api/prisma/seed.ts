@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import { PrismaClient, RecordStatus, RoleCode } from '@prisma/client';
+import { copyFileSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
 
 const prisma = new PrismaClient();
 
@@ -135,13 +137,17 @@ async function main() {
   );
 
   // 公司抬头单行配置（客户选样预览 QUOTATION LIST 使用）
+  // Logo 为老系统 报价单.xls 抬头原图，随种子复制到上传目录（容器内为 upload_data 持久卷）
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  mkdirSync(uploadsDir, { recursive: true });
+  copyFileSync(path.resolve(process.cwd(), 'seed-assets/company-logo.png'), path.resolve(uploadsDir, 'company-logo.png'));
   const existingCompany = await prisma.companyInfo.findFirst();
   const companyData = {
     companyName: 'Mint Chance Textile Co.,Ltd',
-    address: 'Room 401-402 No.2,Lane 298 Tongtao Road.,Changning District,Shanghai 200335, China',
-    phone: '+86-21-51876888',
-    fax: '+86-21-52845389',
-    logoUrl: null,
+    address: 'Room 401-402  No 2, Lane 288 Tongxie Road , Changning District, Shanghai 200335, China',
+    phone: '86-21-51879008',
+    fax: '86-21-52045389',
+    logoUrl: '/uploads/company-logo.png',
   };
   if (existingCompany) {
     await prisma.companyInfo.update({ where: { id: existingCompany.id }, data: companyData });

@@ -26,7 +26,7 @@ function wrap(str, max) {
 }
 
 /**
- * @param {object} label { qrValue:string, data:{ itemNo,name,specification,composition,width,weight,remark } }
+ * @param {object} label { qrValue:string, data:{ itemNo,name,specification,composition,construction,width,weight,remark,companyName } }
  * @param {object} cfg printer.label { widthMm,heightMm,dpi }
  */
 function buildZpl(label, cfg) {
@@ -35,6 +35,7 @@ function buildZpl(label, cfg) {
   const H = dots(cfg.heightMm, dpi)
   const d = label.data || {}
   const qr = (label.qrValue || d.itemNo || '').toString()
+  const header = d.companyName || 'Mint Chance Textile Co.,Ltd'
 
   const qrSize = Math.min(dots(cfg.heightMm * 0.58, dpi), dots(cfg.widthMm * 0.25, dpi))
   const qrX = Math.max(0, W - qrSize - 8)
@@ -44,7 +45,7 @@ function buildZpl(label, cfg) {
   const lines = []
   lines.push('^XA')
   lines.push(`^PW${W}^LL${H}^LH0,0`)
-  lines.push('^FO8,6^A0N,22,22^FDMINQUN TRADING (SHANGHAI) CO., LTD.^FS')
+  lines.push(`^FO8,6^A0N,20,20^FD${clip(header, 40)}^FS`)
   lines.push(`^FO8,34^A0N,24,24^FDItem No.: ${clip(d.itemNo, 25)}^FS`)
   if (d.specification) lines.push(`^FO8,64^A0N,18,18^FDSpecification: ${clip(d.specification, 28)}^FS`)
   let y = 90
@@ -52,7 +53,13 @@ function buildZpl(label, cfg) {
     lines.push(`^FO8,${y}^A0N,17,17^FB${textWidth},1,0,L,0^FD${index === 0 ? 'Composition: ' : ''}${line}^FS`)
     y += 21
   })
-  lines.push(`^FO8,${y}^A0N,17,17^FDWidth / Weight: ${d.width || '-'} / ${d.weight || '-'}^FS`)
+  if (d.construction) {
+    wrap(d.construction, 30).forEach((line, index) => {
+      lines.push(`^FO8,${y}^A0N,17,17^FB${textWidth},1,0,L,0^FD${index === 0 ? 'Construction: ' : ''}${line}^FS`)
+      y += 21
+    })
+  }
+  lines.push(`^FO8,${y}^A0N,17,17^FDWidth: ${d.width || '-'}  Weight: ${d.weight || '-'}^FS`)
   y += 21
   if (d.remark) lines.push(`^FO8,${y}^A0N,17,17^FB${textWidth},2,0,L,0^FDRemark: ${d.remark}^FS`)
   lines.push(`^FO${qrX},8^BQN,2,${qrMag}^FDMA,${qr}^FS`)

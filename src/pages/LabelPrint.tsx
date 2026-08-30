@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { type LabelVariant } from '@/components/LabelPrintMenu'
 
-type Label = { qrValue: string; data: { materialId: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; width?: string | null; weight?: string | null; quantity?: number; remark?: string | null; imageUrl?: string | null } }
+type Label = { qrValue: string; data: { materialId: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; construction?: string | null; width?: string | null; weight?: string | null; quantity?: number; remark?: string | null; imageUrl?: string | null } }
 
 export default function LabelPrint() {
   const [params] = useSearchParams()
@@ -18,6 +18,7 @@ export default function LabelPrint() {
   const variant: LabelVariant = (params.get('variant') as LabelVariant | null) ?? 'FULL'
   const header = params.get('header') !== 'false'
   const [labels, setLabels] = useState<Label[]>([])
+  const [companyName, setCompanyName] = useState('Mint Chance Textile Co.,Ltd')
   const [copies, setCopies] = useState(1)
   const [temporaryRemark, setTemporaryRemark] = useState('')
   const [remarkMode, setRemarkMode] = useState<'REPLACE' | 'APPEND'>('REPLACE')
@@ -55,10 +56,11 @@ export default function LabelPrint() {
         if (useAgent) {
           // 发送到本地打印代理（software），由它真正输出到标签打印机，等价于老系统经 HUANSI 服务打印
           try {
+            const agentLabels = nextLabels.map((label) => ({ ...label, data: { ...label.data, companyName } }))
             const resp = await fetch(`${agentUrl.replace(/\/$/, '')}/api/print/label`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ labels: nextLabels }),
+              body: JSON.stringify({ labels: agentLabels }),
             })
             const data = await resp.json()
             if (!resp.ok || !data.ok) throw new Error((data.errors && data.errors.join('；')) || '打印代理返回错误')
@@ -75,6 +77,13 @@ export default function LabelPrint() {
   }
 
   useEffect(() => { if (hasParams) void callLabels('PREVIEW') }, [sampleChooseId, materialIds.join(',')])
+
+  // 标签抬头：统一取系统「公司信息」，与老系统一致；失败回退到品牌名
+  useEffect(() => {
+    api.get<{ companyName: string }>('/system/company-info')
+      .then((info) => { if (info.companyName) setCompanyName(info.companyName) })
+      .catch(() => undefined)
+  }, [])
 
   // 本地打印代理在线检测（自动识别）：始终探测，决定是否走代理
   useEffect(() => {
@@ -164,6 +173,6 @@ export default function LabelPrint() {
     )}
     {!sampleChooseId && scannedIds.length === 0 && scanHint && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{scanHint}</p>}
     {loading && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">加载中…</p>}{message && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{message}</p>}{!loading && !labels.length && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">未获取到可打印标签。</p>}
-    <div id="label-print-area">{labels.map((label, index) => <div key={`${label.data.materialId}-${index}`} className="print-label m-3 flex h-[40mm] w-[70mm] gap-[2mm] overflow-hidden rounded border border-slate-200 bg-white p-[2mm] text-[9px] leading-[1.35]"><div className="min-w-0 flex-1">{header && <div className="mb-[1mm]"><b className="text-[10px]">MINQUN TRADING (SHANGHAI) CO., LTD.</b></div>}{variant === 'SPEC' ? (<><p className="truncate"><b>Item No.:</b> {label.data.itemNo}</p><p className="truncate"><b>Specification:</b> {label.data.specification || '-'}</p></>) : (<><p className="truncate"><b>Item No.:</b> {label.data.itemNo}</p><p className="truncate"><b>Specification:</b> {label.data.specification || '-'}</p><p className="whitespace-pre-wrap break-words"><b>Composition:</b> {label.data.composition || '-'}</p><p><b>Width / Weight:</b> {label.data.width || '-'} / {label.data.weight || '-'}</p><p className="line-clamp-2"><b>Remark:</b> {label.data.remark || '-'}</p></>)}</div><div className="shrink-0 bg-white pt-[1mm]"><QRCodeSVG value={label.qrValue} size={60} level="M" includeMargin={false} /></div></div>)}</div>
+    <div id="label-print-area">{labels.map((label, index) => <div key={`${label.data.materialId}-${index}`} className="print-label m-3 flex h-[40mm] w-[70mm] gap-[2mm] overflow-hidden rounded border border-slate-200 bg-white p-[2mm] text-[9px] leading-[1.35]"><div className="min-w-0 flex-1">{header && <div className="mb-[1mm]"><b className="text-[10px]">{companyName}</b></div>}{variant === 'SPEC' ? (<><p className="truncate"><b>Item No.:</b> {label.data.itemNo}</p><p className="truncate"><b>Specification:</b> {label.data.specification || '-'}</p></>) : (<><p className="truncate"><b>Item No.:</b> {label.data.itemNo}</p><p className="whitespace-pre-wrap break-words"><b>Composition:</b> {label.data.composition || '-'}</p><p className="whitespace-pre-wrap break-words"><b>Construction:</b> {label.data.construction || '-'}</p><p><b>Width:</b> {label.data.width || '-'}　<b>Weight:</b> {label.data.weight || '-'}</p><p className="line-clamp-2"><b>Remark:</b> {label.data.remark || '-'}</p></>)}</div><div className="shrink-0 bg-white pt-[1mm]"><QRCodeSVG value={label.qrValue} size={60} level="M" includeMargin={false} /></div></div>)}</div>
   </div>
 }

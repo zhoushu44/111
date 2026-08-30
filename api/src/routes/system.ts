@@ -8,6 +8,21 @@ import { getAiVisionConfig, saveAiVisionConfig, testAiVision, maskKey } from '..
 import { writeOperationLog } from '../services/operation-log.service.js';
 
 const router = Router();
+
+// 公司抬头信息（标签/预览/导出统一来源），员工与管理员可读
+router.get('/company-info', authenticate, requireRole(RoleCode.ADMIN, RoleCode.STAFF), async (_req, res, next) => {
+  try {
+    const info = await prisma.companyInfo.findFirst();
+    ok(res, {
+      companyName: info?.companyName || 'Mint Chance Textile Co.,Ltd',
+      address: info?.address ?? '',
+      phone: info?.phone ?? '',
+      fax: info?.fax ?? '',
+      logoUrl: info?.logoUrl ?? null,
+    });
+  } catch (error) { next(error); }
+});
+
 const roles = [
   { code: RoleCode.ADMIN, name: '管理员', permissions: ['dashboard', 'materials.categories', 'materials.fabrics', 'partners.providers', 'partners.customers', 'samples.choose', 'samples.records', 'info.material-query', 'print.labels', 'system.users', 'system.roles', 'system.dictionaries', 'system.ai-config', 'system.logs'] },
   { code: RoleCode.STAFF, name: '员工', permissions: ['dashboard', 'materials.categories', 'materials.fabrics', 'samples.choose', 'samples.records', 'info.material-query', 'print.labels'] },
