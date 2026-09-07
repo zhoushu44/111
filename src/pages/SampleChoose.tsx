@@ -19,6 +19,7 @@ export default function SampleChoose() {
   const [params] = useSearchParams()
   const admin = useAuthStore((state) => state.user?.role === 'admin')
   const autoAdded = useRef(false)
+  const scanQueueRef = useRef(Promise.resolve())
   const editId = params.get('id')
   const [customers, setCustomers] = useState<Customer[]>([])
   const [materials, setMaterials] = useState<Material[]>([])
@@ -37,15 +38,19 @@ export default function SampleChoose() {
   const [message, setMessage] = useState('')
   const [documentNo, setDocumentNo] = useState('')
   const [scanHint, setScanHint] = useState('')
+  const [unsampledOptions, setUnsampledOptions] = useState<{ code: string; label: string }[]>([])
 
   useEffect(() => {
     setLoading(true)
     void Promise.all([
       api.get<{ list: Customer[] }>('/sample-customers?pageSize=100'),
       api.get<{ list: Material[] }>('/materials?pageSize=100&status=ACTIVE'),
-    ]).then(([customerResult, materialResult]) => {
+      // 来样类型下拉与老系统一致，取数据字典；失败不阻塞表单
+      api.get<{ list: { code: string; label: string }[] }>('/dictionaries?type=unsampled_type&pageSize=100&status=ACTIVE').catch(() => ({ list: [] })),
+    ]).then(([customerResult, materialResult, unsampledResult]) => {
       setCustomers(customerResult.list)
       setMaterials(materialResult.list)
+      setUnsampledOptions(unsampledResult.list)
       if (!editId) setCustomerId(customerResult.list[0]?.id ?? '')
     }).catch((error: Error) => setMessage(error.message)).finally(() => setLoading(false))
   }, [])
@@ -79,39 +84,59 @@ export default function SampleChoose() {
     setCode('')
   }, [materials, params, editId])
 
-  const add = async () => {
-    const key = code.trim()
-    if (!key) return
+  const processItemNo = async (key: string, fromScan: boolean) => {
     const lower = key.toLowerCase()
     let material = materials.find((item) => item.itemNo.toLowerCase() === lower)
     if (!material) {
       try {
-        const res = await api.get<{ list: Material[] }>(`/materials?pageSize=100&status=ACTIVE&keyword=${encodeURIComponent(key)}`)
-        material = res.list.find((item) => item.itemNo.toLowerCase() === lower)
-      } catch { /* 保留 null，下方统一提示 */ }
+        if (fromScan) setScanHint(`正在查询 Item No.：${key}`)
+        const res = await api.get<{ list: Material[] }>(`/materials?pageSize=1&itemNo=${encodeURIComponent(key)}&status=ACTIVE`)
+        material = res.list[0]
+      } catch {
+        if (fromScan) {
+          setScanHint(`查询失败：${key}`)
+          window.setTimeout(() => setScanHint(''), 2600)
+        } else {
+          setMessage('查询失败，请稍后重试')
+        }
+        return
+      }
     }
-    if (!material) return setMessage('未找到启用面料')
+    if (!material) {
+      if (fromScan) {
+        setScanHint(`未找到 Item No.：${key}`)
+        window.setTimeout(() => setScanHint(''), 2600)
+      } else {
+        setMessage('未找到启用面料')
+      }
+      return
+    }
     setItems((current) => current.some((item) => item.id === material!.id)
       ? current.map((item) => item.id === material!.id ? { ...item, quantity: item.quantity + 1 } : item)
       : [...current, { ...material!, quantity: 1, remark: '' }])
     setCode('')
-    setMessage('')
+    if (fromScan) {
+      setScanHint(`已扫码加入：${material!.itemNo}`)
+      window.setTimeout(() => setScanHint(''), 2200)
+    } else {
+      setMessage('')
+    }
+  }
+
+  const add = () => {
+    const key = code.trim()
+    setCode('')
+    if (!key) return
+    scanQueueRef.current = scanQueueRef.current.then(() => processItemNo(key, false))
   }
 
   // 扫描器输入：复刻老系统"扫码 Item No. 写入选样单"行为；编辑模式关闭。
+  // 与手动输入一致：本地缓存找不到时回源查询；连续扫码通过队列串行处理，避免乱序/丢码。
   const handleScan = (scanned: string) => {
     const itemNo = scanned.trim()
-    const material = materials.find((item) => item.itemNo.toLowerCase() === itemNo.toLowerCase())
-    if (!material) {
-      setScanHint(`未找到 Item No.：${itemNo}`)
-      window.setTimeout(() => setScanHint(''), 2600)
-      return
-    }
-    setItems((current) => current.some((item) => item.id === material.id)
-      ? current.map((item) => item.id === material.id ? { ...item, quantity: item.quantity + 1 } : item)
-      : [...current, { ...material, quantity: 1, remark: '' }])
-    setScanHint(`已扫码加入：${material.itemNo}`)
-    window.setTimeout(() => setScanHint(''), 2200)
+    setCode('')
+    if (!itemNo) return
+    scanQueueRef.current = scanQueueRef.current.then(() => processItemNo(itemNo, true))
   }
   const { scanning } = useBarcodeScanner({ enabled: !editId, onScan: handleScan })
 
@@ -211,7 +236,19 @@ export default function SampleChoose() {
         </div>
          <div>
           <label className={labelCls}>来样类型</label>
-          <input className={`${fieldCls} w-full`} value={extra.unsampledType} onChange={(e) => setExtra({ ...extra, unsampledType: e.target.value })} placeholder="来样分类" />
+          <select
+            className={`${fieldCls} w-full`}
+            value={extra.unsampledType}
+            onChange={(e) => setExtra({ ...extra, unsampledType: e.target.value })}
+          >
+            <option value="">未指定</option>
+            {unsampledOptions.map((option) => (
+              <option key={option.code} value={option.label}>{option.label}</option>
+            ))}
+            {extra.unsampledType && !unsampledOptions.some((option) => option.label === extra.unsampledType) && (
+              <option value={extra.unsampledType}>{extra.unsampledType}</option>
+            )}
+          </select>
         </div>
         <div>
           <label className={labelCls}>快递单号</label>

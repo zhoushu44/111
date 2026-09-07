@@ -5,7 +5,7 @@ import PageHeader from '@/components/PageHeader'
 import { api, assetUrl } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 
-type M = { id: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; construction?: string | null; width?: string | null; weight?: string | null; color?: string | null; unit?: string | null; factoryNo?: string | null; remark?: string | null; labelRemark?: string | null; status: 'ACTIVE' | 'DISABLED'; images: { url: string; thumbnailUrl?: string | null }[]; category: { name: string }; provider?: { name: string } | null; cost?: number; stocks?: { quantity: number }[] }
+type M = { id: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; construction?: string | null; width?: string | null; weight?: string | null; color?: string | null; colorNo?: string | null; yarnCount?: string | null; density?: string | null; productDescription?: string | null; fabricSource?: string | null; processingMethod?: string | null; unit?: string | null; factoryNo?: string | null; remark?: string | null; labelRemark?: string | null; status: 'ACTIVE' | 'DISABLED'; images: { url: string; thumbnailUrl?: string | null }[]; category: { name: string }; provider?: { name: string } | null; cost?: number; stocks?: { quantity: number }[] }
 type Option = { id: string; name: string }
 type Customer = { id: string; code: string; name: string }
 
@@ -369,24 +369,34 @@ export default function MaterialQuery() {
                         <p className="text-sm font-semibold text-slate-800">{item.name}</p>
                         {/* 字段网格 */}
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                          {item.composition && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-slate-400">成分</span>
-                              <span className="font-medium text-slate-700">{item.composition}</span>
-                            </div>
-                          )}
                           <div className="flex items-center gap-1">
-                            <span className="text-slate-400">克重</span>
-                            <span className="font-medium text-slate-700">{item.weight || '-'}</span>
+                            <span className="text-slate-400">成分</span>
+                            <span className="truncate font-medium text-slate-700">{item.composition || '-'}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <span className="text-slate-400">幅宽</span>
                             <span className="font-medium text-slate-700">{item.width || '-'}</span>
                           </div>
-                          {item.factoryNo && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400">纱支</span>
+                            <span className="truncate font-medium text-slate-700">{item.yarnCount || '-'}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400">密度</span>
+                            <span className="font-medium text-slate-700">{item.density || '-'}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400">克重</span>
+                            <span className="font-medium text-slate-700">{item.weight || '-'}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400">厂编</span>
+                            <span className="truncate font-medium text-slate-700">{item.factoryNo || '-'}</span>
+                          </div>
+                          {(item.colorNo || item.color) && (
                             <div className="flex items-center gap-1">
-                              <span className="text-slate-400">厂编</span>
-                              <span className="font-medium text-slate-700">{item.factoryNo}</span>
+                              <span className="text-slate-400">色号</span>
+                              <span className="truncate font-medium text-slate-700">{item.colorNo || '-'}{item.color ? (item.colorNo ? ` / ${item.color}` : item.color) : ''}</span>
                             </div>
                           )}
                         </div>
@@ -694,7 +704,7 @@ export default function MaterialQuery() {
       </div>
     )}
 
-    {detail && <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/40 p-6"><div className="mx-auto max-w-3xl rounded-2xl bg-white p-6"><div className="mb-4 flex justify-between"><h2 className="text-lg font-bold">{detail.itemNo} 详情</h2><button onClick={() => setDetail(null)}>关闭</button></div><div className="mb-4 flex min-h-40 items-center justify-center bg-slate-50"><MaterialImage image={detail.images[0]} alt="面料大图" detail /></div><div className="grid grid-cols-2 gap-3 text-sm">{[['名称', detail.name], ['类别', detail.category.name], ['状态', detail.status === 'ACTIVE' ? '启用' : '停用'], ['规格', detail.specification], ['成分', detail.composition], ['克重', detail.weight], ['幅宽', detail.width], ['颜色', detail.color], ['工厂编号', detail.factoryNo], ['单位', detail.unit], ...(admin ? [['供应商', detail.provider?.name], ['成本', detail.cost === undefined ? undefined : `¥${detail.cost}`]] : [])].map(([label, value]) => <p key={label}><b>{label}：</b>{value || '-'}</p>)}</div><div className="mt-5 flex gap-3"><button className="rounded-lg bg-[#123c5a] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={detail.status !== 'ACTIVE'} onClick={() => nav(`/samples/choose?item=${detail.itemNo}`)}>加入选样</button><button className="rounded-lg border border-slate-200 px-4 py-2 text-sm disabled:opacity-50" disabled={detail.status !== 'ACTIVE'} onClick={() => nav(`/print/labels?materialIds=${detail.id}`)}>标签打印</button></div></div></div>}
+    {detail && <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/40 p-6"><div className="mx-auto max-w-3xl rounded-2xl bg-white p-6"><div className="mb-4 flex justify-between"><h2 className="text-lg font-bold">{detail.itemNo} 详情</h2><button onClick={() => setDetail(null)}>关闭</button></div><div className="mb-4 flex min-h-40 items-center justify-center bg-slate-50"><MaterialImage image={detail.images[0]} alt="面料大图" detail /></div><div className="grid grid-cols-2 gap-3 text-sm">{[['名称', detail.name], ['类别', detail.category.name], ['状态', detail.status === 'ACTIVE' ? '启用' : '停用'], ['规格', detail.specification], ['成分', detail.composition], ['组织结构', detail.construction], ['纱支', detail.yarnCount], ['密度', detail.density], ['幅宽', detail.width], ['克重', detail.weight], ['颜色', detail.color], ['色号', detail.colorNo], ['工厂编号', detail.factoryNo], ['单位', detail.unit], ['加工方式', detail.processingMethod], ['产品描述', detail.productDescription], ['产品备注', detail.remark], ...(admin ? [['供应商', detail.provider?.name], ['成本', detail.cost === undefined ? undefined : `¥${detail.cost}`]] : [])].map(([label, value]) => <p key={label}><b>{label}：</b>{value || '-'}</p>)}</div><div className="mt-5 flex gap-3"><button className="rounded-lg bg-[#123c5a] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={detail.status !== 'ACTIVE'} onClick={() => nav(`/samples/choose?item=${detail.itemNo}`)}>加入选样</button><button className="rounded-lg border border-slate-200 px-4 py-2 text-sm disabled:opacity-50" disabled={detail.status !== 'ACTIVE'} onClick={() => nav(`/print/labels?materialIds=${detail.id}`)}>标签打印</button></div></div></div>}
   </div>
 }
 

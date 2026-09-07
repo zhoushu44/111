@@ -183,11 +183,15 @@ model MaterialFabric {
   width         String?         @db.VarChar(100)
   weight        String?         @db.VarChar(100)
   color         String?         @db.VarChar(100)
+  colorNo       String?         @map("color_no") @db.VarChar(100) // 色号（原系统面料查询列）
+  yarnCount     String?         @map("yarn_count") @db.VarChar(255) // 纱支（原系统面料资料维护/查询列）
+  density       String?         @db.VarChar(100) // 密度（原系统面料资料维护/查询列）
+  productDescription String?    @map("product_description") @db.VarChar(500) // 产品描述（原系统面料资料维护/查询列）
   unit          String          @default("米") @db.VarChar(20)
   factoryNo     String?         @map("factory_no") @db.VarChar(100) // 工厂编号
   fabricSource  String?         @map("fabric_source") @db.VarChar(100) // 面料来源
   processingMethod String?      @map("processing_method") @db.VarChar(100) // 加工方式
-  remark        String?         @db.VarChar(500)
+  remark        String?         @db.VarChar(500) // 产品备注（原系统“产品备注”列，历史导入数据在此字段）
   labelRemark   String?         @map("label_remark") @db.VarChar(500)
   cost          Decimal?        @db.Decimal(12, 2)
   categoryId  String            @map("category_id") @db.Uuid
@@ -279,7 +283,7 @@ model SampleChoose {
   expressCompany String?      @map("express_company") @db.VarChar(100) // 快递公司
   salesperson    String?      @db.VarChar(100) // 销售员
   sampleType     String?      @map("sample_type") @db.VarChar(50) // 选样类型
-  unsampledType  String?      @map("unsampled_type") @db.VarChar(50) // 未样类型
+  unsampledType  String?      @map("unsampled_type") @db.VarChar(50) // 来样类型
   printedAt      DateTime?    @map("printed_at") // 打印时间
   createdById  String         @map("created_by_id") @db.Uuid
   createdAt    DateTime       @default(now()) @map("created_at")

@@ -14,6 +14,10 @@ type Material = {
   width?: string | null
   weight?: string | null
   color?: string | null
+  colorNo?: string | null
+  yarnCount?: string | null
+  density?: string | null
+  productDescription?: string | null
   unit: string
   factoryNo?: string | null
   fabricSource?: string | null
@@ -56,6 +60,10 @@ type Draft = {
   width: string
   weight: string
   color: string
+  colorNo: string
+  yarnCount: string
+  density: string
+  productDescription: string
   unit: string
   factoryNo: string
   fabricSource: string
@@ -68,7 +76,8 @@ type Draft = {
 const emptyDraft: Draft = {
   itemNo: '', name: '', categoryId: '',
   specification: '', composition: '', construction: '',
-  width: '', weight: '', color: '',
+  width: '', weight: '', color: '', colorNo: '',
+  yarnCount: '', density: '', productDescription: '',
   unit: '米', remark: '', labelRemark: '',
   factoryNo: '', fabricSource: '', processingMethod: '',
   providerId: '', cost: ''
@@ -189,7 +198,8 @@ export default function MaterialFabrics() {
     setDraft({
       itemNo: row.itemNo, name: row.name, categoryId: row.categoryId,
       specification: row.specification ?? '', composition: row.composition ?? '', construction: row.construction ?? '',
-      width: row.width ?? '', weight: row.weight ?? '', color: row.color ?? '',
+      width: row.width ?? '', weight: row.weight ?? '', color: row.color ?? '', colorNo: row.colorNo ?? '',
+      yarnCount: row.yarnCount ?? '', density: row.density ?? '', productDescription: row.productDescription ?? '',
       unit: row.unit, remark: row.remark ?? '', labelRemark: row.labelRemark ?? '',
       factoryNo: row.factoryNo ?? '', fabricSource: row.fabricSource ?? '', processingMethod: row.processingMethod ?? '',
       providerId: row.providerId ?? row.provider?.id ?? '', cost: row.cost == null ? '' : String(row.cost)
@@ -202,7 +212,8 @@ export default function MaterialFabrics() {
     setDraft({
       itemNo: `${row.itemNo}-COPY`, name: row.name, categoryId: row.categoryId,
       specification: row.specification ?? '', composition: row.composition ?? '', construction: row.construction ?? '',
-      width: row.width ?? '', weight: row.weight ?? '', color: row.color ?? '',
+      width: row.width ?? '', weight: row.weight ?? '', color: row.color ?? '', colorNo: row.colorNo ?? '',
+      yarnCount: row.yarnCount ?? '', density: row.density ?? '', productDescription: row.productDescription ?? '',
       unit: row.unit, remark: row.remark ?? '', labelRemark: row.labelRemark ?? '',
       factoryNo: row.factoryNo ?? '', fabricSource: row.fabricSource ?? '', processingMethod: row.processingMethod ?? '',
       providerId: row.providerId ?? row.provider?.id ?? '', cost: row.cost == null ? '' : String(row.cost)
@@ -222,7 +233,9 @@ export default function MaterialFabrics() {
         itemNo: draft.itemNo.trim(), name: draft.name.trim(), categoryId: draft.categoryId,
         specification: nullable(draft.specification), composition: nullable(draft.composition),
         construction: nullable(draft.construction), width: nullable(draft.width),
-        weight: nullable(draft.weight), color: nullable(draft.color),
+        weight: nullable(draft.weight), color: nullable(draft.color), colorNo: nullable(draft.colorNo),
+        yarnCount: nullable(draft.yarnCount), density: nullable(draft.density),
+        productDescription: nullable(draft.productDescription),
         unit: draft.unit.trim(), remark: nullable(draft.remark), labelRemark: nullable(draft.labelRemark),
         factoryNo: nullable(draft.factoryNo), fabricSource: nullable(draft.fabricSource),
         processingMethod: nullable(draft.processingMethod)
@@ -402,11 +415,14 @@ export default function MaterialFabrics() {
     { key: 'unit', label: '单位', required: true, type: 'combobox', options: dictOptions.unit ?? [] },
     { key: 'composition', label: '面料成份', type: 'combobox', options: dictOptions.composition ?? [] },
     { key: 'processingMethod', label: '加工方式', type: 'combobox', options: dictOptions.processing_method ?? [] },
-    { key: 'specification', label: '规格' },
+    { key: 'specification', label: '产品规格' },
+    { key: 'yarnCount', label: '纱支' },
+    { key: 'density', label: '密度' },
     { key: 'construction', label: '组织结构' },
     { key: 'width', label: '幅宽' },
     { key: 'weight', label: '克重' },
     { key: 'color', label: '颜色' },
+    { key: 'colorNo', label: '色号' },
     { key: 'factoryNo', label: '工厂编码' },
     { key: 'providerId', label: '供应商', type: 'select', options: providers, adminOnly: true },
     { key: 'cost', label: '成本 (¥)', adminOnly: true }
@@ -684,8 +700,8 @@ export default function MaterialFabrics() {
                 </div>
 
                 <div className="mt-5 grid grid-cols-12 gap-4">
-                  <div className="col-span-6">
-                    <label className="mb-1 block text-xs font-medium text-slate-500">备注</label>
+                  <div className="col-span-4">
+                    <label className="mb-1 block text-xs font-medium text-slate-500">产品备注</label>
                     {draft ? (
                       <textarea
                         value={draft.remark}
@@ -697,7 +713,20 @@ export default function MaterialFabrics() {
                       <div className="min-h-[76px] rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 text-sm text-slate-700">{active?.remark || <span className="text-slate-300">—</span>}</div>
                     )}
                   </div>
-                  <div className="col-span-6">
+                  <div className="col-span-4">
+                    <label className="mb-1 block text-xs font-medium text-slate-500">产品描述</label>
+                    {draft ? (
+                      <textarea
+                        value={draft.productDescription}
+                        onChange={(e) => setDraft({ ...draft, productDescription: e.target.value })}
+                        rows={3}
+                        className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-[#1e8a7a]"
+                      />
+                    ) : (
+                      <div className="min-h-[76px] rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 text-sm text-slate-700">{active?.productDescription || <span className="text-slate-300">—</span>}</div>
+                    )}
+                  </div>
+                  <div className="col-span-4">
                     <label className="mb-1 block text-xs font-medium text-slate-500">标签备注</label>
                     {draft ? (
                       <textarea
@@ -732,12 +761,18 @@ export default function MaterialFabrics() {
                         ['规格', active.specification],
                         ['成分', active.composition],
                         ['组织结构', active.construction],
+                        ['纱支', active.yarnCount],
+                        ['密度', active.density],
                         ['幅宽', active.width],
                         ['克重', active.weight],
                         ['颜色', active.color],
+                        ['色号', active.colorNo],
                         ['工厂编码', active.factoryNo],
                         ['面料来源', active.fabricSource],
                         ['加工方式', active.processingMethod],
+                        ['产品描述', active.productDescription],
+                        ['产品备注', active.remark],
+                        ['标签备注', active.labelRemark],
                         ['供应商', admin ? (active.provider?.name ?? '-') : '***'],
                         ['成本', admin ? (active.cost != null ? `¥ ${active.cost}` : '-') : '***'],
                         ['状态', active.status === 'ACTIVE' ? '启用' : '停用']

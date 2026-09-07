@@ -12,12 +12,21 @@ const EMPTY_ROWS = 20
 // 抬头星号分隔线（与导出一致，老系统 报价单.xls 为整行星号），超宽部分打印时隐藏
 const HEADER_ASTERISKS = '*'.repeat(110)
 
+type CompanyInfo = { companyName: string; address: string; phone: string; fax: string; logoUrl?: string | null }
+const DEFAULT_COMPANY: CompanyInfo = {
+  companyName: 'Mint Chance Textile Co.,Ltd',
+  address: '',
+  phone: '',
+  fax: '',
+  logoUrl: null,
+}
+
 export default function SampleChoosePreview() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const admin = useAuthStore((state) => state.user?.role === 'admin')
   const [detail, setDetail] = useState<Detail | null>(null)
-  const [company, setCompany] = useState<{ companyName: string; address: string; phone: string; fax: string; logoUrl?: string | null } | null>(null)
+  const [company, setCompany] = useState<CompanyInfo | null>(null)
   const [showSpec, setShowSpec] = useState(true)
   const [showImage, setShowImage] = useState(false)
   const [showCost, setShowCost] = useState(false)
@@ -27,9 +36,11 @@ export default function SampleChoosePreview() {
   useEffect(() => {
     if (!id) return
     setLoading(true); setMessage('')
+    const companyInfo = api.get<CompanyInfo>('/system/company-info')
+      .catch(() => DEFAULT_COMPANY)
     void Promise.all([
       api.get<Detail>(`/sample-chooses/${id}`),
-      api.get<{ companyName: string; address: string; phone: string; fax: string; logoUrl?: string | null }>('/system/company-info'),
+      companyInfo,
     ]).then(([d, info]) => {
       setDetail(d)
       setCompany(info)

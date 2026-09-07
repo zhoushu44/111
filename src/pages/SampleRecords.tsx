@@ -3,12 +3,12 @@ import { Printer } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import DataTable from '@/components/DataTable'
 import PageHeader from '@/components/PageHeader'
-import { api, downloadBlob } from '@/lib/api'
+import { api, assetUrl, downloadBlob } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import LabelPrintMenu from '@/components/LabelPrintMenu'
 
-type RecordItem = { id: string; documentNo: string; customerName: string; status: 'ACTIVE' | 'VOIDED'; createdAt: string; _count: { items: number } }
-type Detail = RecordItem & { customer: { name: string; code: string }; createdBy: { displayName: string; username: string }; remark?: string | null; contact?: string | null; salesperson?: string | null; expressNo?: string | null; expressCompany?: string | null; sampleType?: string | null; unsampledType?: string | null; currency?: string | null; requirement?: string | null; printedAt?: string | null; items: { id: string; itemNoSnapshot: string; nameSnapshot: string; specSnapshot?: string | null; unitSnapshot?: string | null; compositionSnapshot?: string | null; widthSnapshot?: string | null; factoryNoSnapshot?: string | null; quantity: number; remark?: string | null; material: { unit: string } }[] }
+type RecordItem = { id: string; documentNo: string; customerName: string; status: 'ACTIVE' | 'VOIDED'; createdAt: string; createdBy?: { displayName: string; username: string } | null; _count: { items: number } }
+type Detail = RecordItem & { customer: { name: string; code: string; fullName?: string | null }; createdBy: { displayName: string; username: string }; remark?: string | null; contact?: string | null; salesperson?: string | null; expressNo?: string | null; expressCompany?: string | null; sampleType?: string | null; unsampledType?: string | null; currency?: string | null; requirement?: string | null; printedAt?: string | null; items: { id: string; itemNoSnapshot: string; nameSnapshot: string; specSnapshot?: string | null; unitSnapshot?: string | null; compositionSnapshot?: string | null; widthSnapshot?: string | null; weightSnapshot?: string | null; factoryNoSnapshot?: string | null; quantity: number; remark?: string | null; material: { unit: string; color?: string | null; images: { url: string }[] } }[] }
 type Query = { documentNo: string; customer: string; itemNo: string; createdById: string; status: string; dateFrom: string; dateTo: string }
 type Operator = { id: string; displayName: string; username: string }
 
@@ -71,7 +71,7 @@ export default function SampleRecords() {
       <PageHeader title="客户选样查询" description="按单号、客户、Item No. 和状态查询真实选样单。" />
       <div className="mb-4 flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white p-4">
         <input placeholder="单号" className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.documentNo} onChange={(event) => setQuery({ ...query, documentNo: event.target.value })} />
-        <input placeholder="客户名" className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.customer} onChange={(event) => setQuery({ ...query, customer: event.target.value })} />
+        <input placeholder="客户名/代码" title="支持客户代码或客户名查询" className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.customer} onChange={(event) => setQuery({ ...query, customer: event.target.value })} />
         <input placeholder="Item No." className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.itemNo} onChange={(event) => setQuery({ ...query, itemNo: event.target.value })} />
         <select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.createdById} onChange={(event) => setQuery({ ...query, createdById: event.target.value })}><option value="">全部操作人</option>{operators.map((operator) => <option key={operator.id} value={operator.id}>{operator.displayName || operator.username}（{operator.username}）</option>)}</select>
         <select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.status} onChange={(event) => setQuery({ ...query, status: event.target.value })}>
@@ -95,6 +95,7 @@ export default function SampleRecords() {
       <DataTable data={list} columns={[
         { title: '单号', render: (row) => row.documentNo },
         { title: '客户', render: (row) => row.customerName },
+        { title: '操作人', render: (row) => row.createdBy ? (row.createdBy.displayName || row.createdBy.username) : '-' },
         { title: '日期', render: (row) => new Date(row.createdAt).toLocaleString() },
         { title: '款数', render: (row) => row._count.items },
         { title: '状态', render: (row) => row.status === 'ACTIVE' ? '有效' : '已作废' },
@@ -118,16 +119,36 @@ export default function SampleRecords() {
               <h2 className="text-lg font-bold">选样单详情：{detail.documentNo}</h2>
               <button onClick={() => setDetail(null)}>关闭</button>
             </div>
-            <p className="mb-3">客户：{detail.customer.name} 制单人：{detail.createdBy.displayName || detail.createdBy.username} 备注：{detail.remark || '-'}</p>
-            {(detail.contact || detail.salesperson || detail.expressNo || detail.sampleType) && <p className="mb-3 text-sm text-slate-600">联系人：{detail.contact || '-'} 销售员：{detail.salesperson || '-'} 选样类型：{detail.sampleType || '-'} 快递：{detail.expressCompany || '-'} {detail.expressNo || '-'}</p>}
+            {/* 表头字段全量展示（对齐老系统选样单基础页），空值显示 - 不再整行隐藏 */}
+            <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm md:grid-cols-3">
+              <div><span className="text-slate-500">选样日期：</span>{new Date(detail.createdAt).toLocaleDateString()}</div>
+              <div><span className="text-slate-500">客户代码：</span>{detail.customer.code || '-'}</div>
+              <div><span className="text-slate-500">客户：</span>{detail.customer.name}{detail.customer.fullName ? `（${detail.customer.fullName}）` : ''}</div>
+              <div><span className="text-slate-500">制单人：</span>{detail.createdBy.displayName || detail.createdBy.username}</div>
+              <div><span className="text-slate-500">状态：</span>{detail.status === 'ACTIVE' ? '有效' : '已作废'}</div>
+              <div><span className="text-slate-500">打印时间：</span>{detail.printedAt ? new Date(detail.printedAt).toLocaleString() : '-'}</div>
+              <div><span className="text-slate-500">联系人：</span>{detail.contact || '-'}</div>
+              <div><span className="text-slate-500">币种：</span>{detail.currency || '-'}</div>
+              <div><span className="text-slate-500">销售员：</span>{detail.salesperson || '-'}</div>
+              <div><span className="text-slate-500">选样类型：</span>{detail.sampleType || '-'}</div>
+              <div><span className="text-slate-500">来样类型：</span>{detail.unsampledType || '-'}</div>
+              <div><span className="text-slate-500">快递：</span>{[detail.expressCompany, detail.expressNo].filter(Boolean).join(' ') || '-'}</div>
+              <div className="col-span-2 md:col-span-3"><span className="text-slate-500">要求：</span>{detail.requirement || '-'}</div>
+              <div className="col-span-2 md:col-span-3"><span className="text-slate-500">备注：</span>{detail.remark || '-'}</div>
+            </div>
+            {/* 明细列顺序对齐老系统选样单（客户已确认）：图片置首，其余按原字段顺序 产品编码/产品名称/工厂编号/颜色/数量/单位/成份/产品规格/幅宽/克重 */}
             <DataTable data={detail.items} columns={[
+              { title: '图片', render: (item) => item.material.images[0]?.url ? <img className="h-12 w-12 object-cover" src={assetUrl(item.material.images[0].url)} alt="面料" /> : '-' },
               { title: 'Item No.', render: (item) => item.itemNoSnapshot },
               { title: '名称', render: (item) => item.nameSnapshot },
-              { title: '规格', render: (item) => item.specSnapshot || '-' },
-              { title: '成分', render: (item) => item.compositionSnapshot || '-' },
-              { title: '幅宽', render: (item) => item.widthSnapshot || '-' },
               { title: '工厂编号', render: (item) => item.factoryNoSnapshot || '-' },
-              { title: '数量', render: (item) => `${item.quantity} ${item.unitSnapshot || item.material.unit}` },
+              { title: '颜色', render: (item) => item.material.color || '-' },
+              { title: '数量', render: (item) => item.quantity },
+              { title: '单位', render: (item) => item.unitSnapshot || item.material.unit },
+              { title: '成分', render: (item) => item.compositionSnapshot || '-' },
+              { title: '规格', render: (item) => item.specSnapshot || '-' },
+              { title: '幅宽', render: (item) => item.widthSnapshot || '-' },
+              { title: '克重', render: (item) => item.weightSnapshot || '-' },
               { title: '备注', render: (item) => item.remark || '-' },
             ]} />
           </div>

@@ -120,7 +120,7 @@ async function main() {
     { type: 'sample_type', code: 'REPEAT', label: '翻单', sortOrder: 2 },
     { type: 'sample_type', code: 'REWORK', label: '重做', sortOrder: 3 },
     { type: 'sample_type', code: 'TEST', label: '测试样', sortOrder: 4 },
-    // 未样类型
+    // 来样类型
     { type: 'unsampled_type', code: 'PENDING', label: '待送样', sortOrder: 1 },
     { type: 'unsampled_type', code: 'IN_TRANSIT', label: '在途', sortOrder: 2 },
     { type: 'unsampled_type', code: 'RECEIVED', label: '已收', sortOrder: 3 },

@@ -24,12 +24,12 @@
 | # | 检查项 | 结果 | 备注 |
 |---|---|---|---|
 | 1 | 管理员能否登录 | ✅ | zhoushu 登录正常 |
-| 2 | 员工能否登录 | ⭕️ | **待员工账号同步** |
-| 3 | 管理员和员工能否同时在线 | ⭕️ | 待员工账号同步后验证 |
-| 4 | 两个账号数据是否互通 | ⭕️ | 同上 |
-| 5 | 员工不能查看「供应商维护」「客户资料维护」 | ⭕️ | 同上，联动四/五模块 |
+| 2 | 员工能否登录 | ✅ | staff 已可登录（Staff@123456） |
+| 3 | 管理员和员工能否同时在线 | ✅ | 已实测：zhoushu 与 staff 先后登录后，两个 accessToken 均能通过 `/auth/me`，会话并存 |
+| 4 | 两个账号数据是否互通 | ⭕️ | 待继续验证 |
+| 5 | 员工不能查看「供应商维护」「客户资料维护」 | ⭕️ | 待继续验证，联动四/五模块 |
 
-问题汇总：待员工账号同步。
+问题汇总：员工账号已同步并验证登录/同时在线；剩余数据互通与员工菜单权限待继续验证。
 
 ---
 
@@ -99,8 +99,8 @@ Item No 及按 Item No 查询 ✅｜产品名称 ✅｜面料类别 ✅｜单位
 | P1 | 基础页面字段（选样单客户、联系人、币种、销售员、选样类型、来样类型、快递单号、快递公司、要求、备注） | **错别字：「未样类型」应为「来样类型」** | image 20 / image 11 |
 | P2 | 扫码添加产品 | 扫码结果需提供截图取证 | — |
 | P3 | 产品图片和字段带出 | ① 缺少「克重」；② 字段顺序：图片放最前，其余按旧系统原字段顺序（客户已确认） | image 6 / image 1 |
-| P4 | 进入表格打印预览 | 预览页面缺少内容 | image 24 |
-| P5 | 导出表格 | ① 缺公司 Logo、地址、电话、传真等抬头（客户确认必须完整保留）；② Composition 过长需自动换行展示。数据行方式与图片列已按新系统通过 ✅ | image 7 |
+| P4 | 进入表格打印预览 | ✅ 8-30 代码已修复并本地端到端验证（真实库 XZ202608225451 / CN263061154）：Construction 显示 `MR30*MR40 / 94*74`、Weight 显示 `132G/SM`，与原系统 image 24 一致；抬头为 Logo + 地址 + TEL/FAX + 星号线 + QUOTATION LIST + Customer/Document No./ATTN/DATE。明细快照为空时自动回退面料主数据取值；另补详情接口 cost 返回使「包含成本」列真正生效（该面料 cost 为空故默认不显示，与原系统一致）。**此前 8-22 截图缺列的根因是线上 7776 仍为旧镜像（接口 material 无 construction/weight 字段），非数据缺失**（待重新部署 + 复验截图） | image 24 |
+| P5 | 导出表格 | ✅ 8-30 代码已修复并本地导出验证：① 抬头补齐——Logo（提取自原始 `报价单.xls` 抬头原图，seed 预置 `/uploads/company-logo.png`）+ 地址 + TEL/FAX（粗体居中）+ 整行星号分隔线 + ATTN 行，与原系统输出一致；② Composition 开启自动换行完整展示。数据行方式与图片列此前已按新系统通过 ✅（待 192.6.121.16 环境重新部署 + 复验截图） | image 7 |
 | P6 | 标签预览 + 打印标签自检 | ① 抬头由 `MINQUN TRADING…` 改回 `Mint Chance Textile Co.,Ltd`（客户已确认）✅ 8-30 已验证；② 标签内容基本为空 ✅ 8-30 已验证；③ 打印结果需实拍截图 | image 19 |
 
 ### ★ B 类问题 · 原始系统参考依据（源自 E:\…Desktop\HSTIP_SHMQ）
@@ -135,6 +135,18 @@ TEL : 86-21-51879008   FAX : 86-21-52045389
 遗留问题：
 - 内容显示不全（同模块六 P4/P5 联动）；
 - 企业名称有歧义（同模块六标签抬头问题，统一为 `Mint Chance Textile Co.,Ltd`）。参考 image 23 / image 25
+
+### ★ 遗留问题 · 代码修复记录（2026-08-30）
+
+> 状态：代码已改，前后端 typecheck 通过；与模块六共用打印预览/导出/标签链路，需随 7.0 镜像重新部署并复验截图。
+
+| # | 问题 | 改动文件 | 关键修改 |
+|---|---|---|---|
+| C1 | 详情内容显示不全 | `src/pages/SampleRecords.tsx`、`api/src/routes/sample-chooses.ts` | ① 详情弹窗明细列对齐老系统已确认列序：图片→Item No.→名称→工厂编号→颜色→数量→单位→成分→规格→幅宽→克重→备注（补 颜色/单位/克重/图片，后端详情接口补 color/cost 返回）；② 详情表头字段全量展示：选样日期/客户代码/客户（简称+全称，消除名称歧义）/制单人/状态/打印时间/联系人/币种/销售员/选样类型/来样类型/快递/要求/备注，空值显示「-」不再整行隐藏；③ 列表补「操作人」列（后端列表接口带 createdBy），与操作人筛选项呼应 |
+| C2 | 打印/导出内容显示不全 | 复用模块六 B4/B5 修复 | 打印预览（`SampleChoosePreview.tsx`）与导出（`exports.ts`）抬头统一为：Logo（seed 预置 `/uploads/company-logo.png`，取自原始 报价单.xls 抬头原图）+ 地址 + TEL/FAX + 整行星号线 + QUOTATION LIST + Customer/Document No./ATTN/DATE；Composition 自动换行 |
+| C3 | 企业名称歧义 | `api/prisma/seed.ts`、预览/导出/标签链路 | 全链路统一取 `CompanyInfo`（GET `/system/company-info`），缺省回退 `Mint Chance Textile Co.,Ltd`；seed 每次执行都会把公司信息校正为 Mint Chance（Lane 288 Tongxie / TEL 86-21-51879008 / FAX 86-21-52045389）；两个 Dockerfile 均已打包 seed-assets |
+
+> ⚠️ 部署注意：compose 的 migrate 服务只执行 `prisma migrate deploy`，**不会自动跑 seed**。192.6.121.16 环境若公司名仍显示旧值，需在 api 容器内手动执行一次 `npm run seed`（幂等，会更新已有公司信息行），或重新部署后复验。
 
 ---
 
@@ -188,6 +200,93 @@ docker run -d --name fabric-erp --env-file /path/to/api/.env -p 7776:3000 -v fab
 | P0 | 同步员工账号 → 验证登录/同时在线/数据互通/菜单权限 | 解锁模块一、四、五共 3 个模块验收 |
 | P1 | 客户选样管理 6 项（错别字→字段→预览→导出→标签） | 解锁模块六、七验收 |
 | P2 | 取证材料：扫码步骤+截图、标签打印实拍 | 完成模块六收尾 |
+
+---
+
+## 十、面料资料字段缺失 · 修复记录（2026-09-08）
+
+> 状态：数据库迁移 + 4.4 万条回填已完成（真实库）；代码已改，前后端构建通过；需重新部署镜像后复验截图。
+
+### 用户反馈
+
+面料页面：① 没有「工厂编号」② 没有「纱支 & 密度 & 幅宽 & 克重」③ 没有「原产品备注」④ 成份看不到，内容不见了。
+
+### 根因（对照原版《敏群面料资料截至20260701（最终版）(2).xlsx》与 HSTIP）
+
+Excel 表头（20 列）：产品类别｜敏群编码｜成分｜幅宽｜**纱支**｜**密度**｜成品克重｜**产品备注**｜成本单价｜工厂编码｜产品名称｜**色号**｜颜色｜产品规格｜加工方式｜**产品描述**｜单位｜创建人｜创建日期｜产品色号。
+
+1. **纱支(E)、密度(F)、色号(L)、产品描述(P)** 在早期建模时未建独立字段（旧导入把 纱支+密度 合并写进了 `construction`，色号/描述被丢弃），面料页自然没有这些内容。
+2. 工厂编码/幅宽/克重/成分/产品备注在库里**一直有数据**（44738 条中：成分 44736、幅宽 44737、克重 44737、工厂编码 40927、产品备注 13662 非空）。用户看不到是因为**线上跑的是旧镜像**（8-30 报表已记载 7776 长期未重部署的问题），且查询页成分/厂编为空时整行隐藏。
+3. 产品备注被新页面标签为「备注」且放在「标签备注」旁边，原版叫法「产品备注」+「产品描述」未体现。
+
+### 改动清单
+
+| # | 内容 | 文件 |
+|---|---|---|
+| 1 | `MaterialFabric` 新增 4 列：`color_no` 色号、`yarn_count` 纱支、`density` 密度、`product_description` 产品描述；备注字段注释明确为「产品备注」 | `api/prisma/schema.prisma`、`api/prisma/migrations/20260908010000_add_yarn_density_colorno_proddesc/migration.sql` |
+| 2 | 回填 44,602 条：E→纱支、F→密度、L→色号、P→产品描述（按敏群编码精确匹配，重复编码保留首行）；32 条 Excel 之外旧编码按 `construction "纱支 / 密度"` 拆分兜底 | `api/scripts/backfill-fabric-fields.ts`（已执行） |
+| 3 | 后端：创建/修改校验、员工可见字段、关键字搜索（新增 色号/纱支/密度/产品描述/产品备注）、更改记录字段中文名 | `api/src/routes/materials.ts` |
+| 4 | 面料资料导出补列：纱支、密度、色号、产品描述、产品备注 | `api/src/routes/exports.ts` |
+| 5 | 面料资料维护：主信息编辑/新增字段 纱支·密度·色号；底部三栏 产品备注｜产品描述｜标签备注；附加信息 Tab 全字段展示 | `src/pages/MaterialFabrics.tsx` |
+| 6 | 面料查询：卡片常显 成分/幅宽/纱支/密度/克重/厂编/色号（空值显示「—」不再整行隐藏）；详情弹窗补 组织结构/纱支/密度/色号/加工方式/产品描述/产品备注 | `src/pages/MaterialQuery.tsx` |
+
+### 数据验证（真实库 44,738 条）
+
+- 纱支非空 **22,770**｜密度 **18,355**｜色号 **41,240**｜产品描述 **14,226**（回填前全为 0）。
+- 抽查：CN263061155 → 纱支 `MR40//*MR30`、密度 `92*80`、成分 `100% VISCOSE (MILKSKIN®)`、幅宽 `56/57"`、克重 `126G/SM`、工厂 `VY1215937-01`、产品备注 `NATURAL PROTEIN FINISH`，与原 Excel 一致 ✅；CN26F81023A 同理 ✅。
+- 2 条 HSTIP 老记录（CN19669050/51）Excel 行存在错位脏数据（keyin 日志串），已从产品描述/色号清理 ✅。
+- 端到端：登录 → 列表/详情均返回新字段；POST 建样条（纱支/密度/色号/描述）成功并落库，测试数据已删除 ✅。
+- API typecheck、前端 tsc、vite build 全部通过 ✅。
+
+### 上线步骤
+
+```bash
+git add -A && git commit && git push            # CI 自动构建 fabric-erp:7.0 + latest
+# 服务器（DB 迁移已由本地对真实库执行并记录，镜像内 migrate 服务幂等无副作用）：
+docker compose --profile migrate run --rm migrate
+docker pull <DOCKER_HUB_USERNAME>/fabric-erp:latest
+docker rm -f fabric-erp
+docker run -d --name fabric-erp --env-file ./api.env -p 7776:3000 -v fabric-erp-uploads:/app/uploads <DOCKER_HUB_USERNAME>/fabric-erp:latest
+```
+
+复验：面料资料维护/面料查询任选记录 → 纱支、密度、色号、产品描述、产品备注、成分、幅宽、克重、工厂编号均有内容；导出 Excel 多出 5 列。
+
+---
+
+## 十一、下载 Excel 抬头（Logo/地址/电话/传真）未完整保留 · 客户反馈核查（2026-09-08）
+
+> 客户反馈原文：**下载的 excel 旧系统有公司 Logo、地址、电话、传真等抬头信息，新系统目前没有完整保留。（已与客户确认，原有内容需完整保留）**
+> 影响范围经确认为：**客户选样单（报价单）导出 Excel**（模块六/七）。
+
+### 核查结论（本地连真实库端到端验证，2026-09-08）
+
+| # | 核查项 | 结果 |
+|---|---|---|
+| 1 | `GET /system/company-info`（真实库） | ✅ 返回老系统权威抬头：`Mint Chance Textile Co.,Ltd` / `Room 401-402  No 2, Lane 288 Tongxie Road…` / `TEL 86-21-51879008` / `FAX 86-21-52045389` / `logoUrl=/uploads/company-logo.png`（与 HSTIP_SHMQ\报价单.xls 模板原文一致） |
+| 2 | 导出真实有效单 XZ202609078305（含规格/图片/成本） | ✅ 抬头完整：R1 地址、R2 `TEL : … FAX : …`、R3 整行星号线、R5 `QUOTATION LIST`、R7 `Customer/DATE`、R8 `ATTN`、R10 列表头；左上角嵌入公司 Logo 图（128×66，锚点 A1） |
+| 3 | 线上 192.6.121.16 下载仍无整块抬头 | ⭕ **部署滞后**：8-30 之前的镜像（7.0=8-20 之前版本）无 Logo/新版抬头；uploads 卷未执行 seed 时亦无 `company-logo.png`（容器镜像内已内置 `seed-assets/`，但运行时不自动复制） |
+
+> 依据「老系统」裁决公司信息：老系统导出/打印模板为 `HSTIP_SHMQ\报价单.xls`（2020-04-08，其 sheet 顶部：Logo 图形 Picture1 + 公司名 Arial24 + 地址 + TEL/FAX + 星号线 + QUOTATION LIST 宋体24 + Customer/DATE/ATTN），即代码与 seed 采用的 Lane 288 Tongxie 值。
+> ⚠️ 注意：工作区根目录 `客户选样单_XZ202607302091.xlsx` **不是老系统导出件**——其抬头数值（Lane 298 Tongtao / +86-21-51876888 / +86-21-52845389）、客户「上海示例客户」与 MQ-0001 等与 2.0 版 seed 完全一致，属早期新系统（7-30~8 月上旬）构建输出，勿再作比对基准。
+
+### 本次加固（代码）
+
+`api/src/routes/exports.ts`：公司 Logo 文件解析增加回退链——优先 DB `logoUrl` 的 `/uploads/company-logo.png`；文件不存在（容器 uploads 卷未 seed / 新装环境）时**自动回退镜像内置 `seed-assets/company-logo.png`**（两个 Dockerfile 均已 COPY 该目录），保证任意环境导出都不丢 Logo。api typecheck 通过。
+
+### 上线与复验（服务器 192.6.121.16）
+
+```bash
+git add -A && git commit && git push            # CI 自动构建 fabric-erp:7.0 + latest
+docker compose --profile migrate run --rm migrate
+# 关键：compose migrate 不跑 seed；需在容器内执行一次（幂等），
+# 作用：① CompanyInfo 校正为 Lane 288 Tongxie / 51879008 / 52045389 ② 把 company-logo.png 复制进 uploads 卷
+docker exec -it fabric-erp npm run seed
+docker pull <DOCKER_HUB_USERNAME>/fabric-erp:latest
+docker rm -f fabric-erp
+docker run -d --name fabric-erp --env-file ./api.env -p 7776:3000 -v fabric-erp-uploads:/app/uploads <DOCKER_HUB_USERNAME>/fabric-erp:latest
+```
+
+复验：客户选样查询 → 任一有效单 → 导出 → 打开 Excel 核对 R1 地址 / R2 TEL:FAX / R3 星号线 / R5 QUOTATION LIST / 左上 Logo 图均存在；`GET /system/company-info` 返回 Tongxie 值。已生成的本地对照件：`.dbg/real-export-check.xlsx`（真实库 2026-09-08 导出，13 行×8 列）。
 
 ---
 
