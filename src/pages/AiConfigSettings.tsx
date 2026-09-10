@@ -110,7 +110,7 @@ export default function AiConfigSettings() {
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://api.openai.com/v1"
             />
-            <p className="mt-1 text-xs text-slate-400">OpenAI 兼容接口根地址，系统会自动拼接 <code className="rounded bg-slate-100 px-1">/chat/completions</code>。</p>
+            <p className="mt-1 text-xs text-slate-400">OpenAI 兼容接口根地址，可含端口（如 <code className="rounded bg-slate-100 px-1">http://192.6.121.16:3001/v1</code>），系统会自动拼接 <code className="rounded bg-slate-100 px-1">/chat/completions</code>。</p>
           </div>
 
           {/* 模型 */}

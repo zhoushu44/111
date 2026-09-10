@@ -44,3 +44,10 @@
 - **连续扫码焦点保持**：handleScan 改 async，refocusScan() 用 setTimeout(50ms) 确保 DOM 更新后重新聚焦
 - 改动文件：`src/pages/MaterialQuery.tsx`（前端）、`api/src/routes/materials.ts`（后端 keyword 扩展）
 - **注意**：本地 api/uploads/materials/ 目录为空（数据库来自远程，图片文件不在本机），图片全部 500 → 已用占位符优雅处理
+
+## AI 视觉识别配置修复（2026-09-10）
+- **问题**：`api/src/services/ai-config.service.ts` 的 `resolveAiBaseUrl` 函数端口校验过严，仅允许 80/443，导致 `http://192.6.121.16:3001/v1` 这类带非标准端口的 AI 接口地址被拒（报错「接口地址仅允许标准 HTTP/HTTPS 端口」）
+- **修复**：放宽端口校验为 1024–65535 范围，允许显式指定端口（如 3001）
+- 同时更新前端 `src/pages/AiConfigSettings.tsx` 的接口地址输入框提示，示例带端口
+- SSRF 防护仍保留：仍校验协议（http/https）、禁止内网/私网/链路本地地址、禁止 localhost
+- 注意：项目从旧目录 `111` 迁移到 `1112` 后 node_modules 不存在，需重新 `npm install`（前后端均需）+ `prisma generate`

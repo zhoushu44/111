@@ -111,7 +111,13 @@ async function resolveAiBaseUrl(value: string): Promise<{ url: URL; address: str
   try { url = new URL(value.trim()); } catch { throw new HttpError(400, '接口地址不是有效 URL'); }
   if (!['https:', 'http:'].includes(url.protocol)) throw new HttpError(400, '接口地址仅支持 HTTP 或 HTTPS');
   if (url.username || url.password) throw new HttpError(400, '接口地址不能包含用户名或密码');
-  if (url.port && url.port !== '80' && url.port !== '443') throw new HttpError(400, '接口地址仅允许标准 HTTP/HTTPS 端口');
+  // 允许显式指定端口（如 http://192.6.121.16:3001/v1），但仅限非特权端口 ≥1024
+  if (url.port) {
+    const portNum = Number(url.port);
+    if (!Number.isInteger(portNum) || portNum < 1024 || portNum > 65535) {
+      throw new HttpError(400, '接口地址端口必须在 1024–65535 范围内');
+    }
+  }
   const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
   if (!hostname || hostname === 'localhost' || hostname.endsWith('.localhost') || !hostname.includes('.') && !isIP(hostname) || hostname.endsWith('.local') || hostname.endsWith('.internal') || hostname.endsWith('.lan') || hostname.endsWith('.home') || hostname.endsWith('.corp')) {
     throw new HttpError(400, '接口地址不能指向本机或内网主机');
