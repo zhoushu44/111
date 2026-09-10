@@ -38,7 +38,7 @@
 GitHub Actions 会在推送到 `main` 或 `master` 分支时自动构建并推送同一个镜像的两个标签：
 
 ```text
-<DOCKER_HUB_USERNAME>/fabric-erp:3.0
+<DOCKER_HUB_USERNAME>/fabric-erp:7.0
 <DOCKER_HUB_USERNAME>/fabric-erp:latest
 ```
 
@@ -96,7 +96,7 @@ echo "$DOCKER_HUB_TOKEN" | docker login --username "$DOCKER_HUB_USERNAME" --pass
 推荐生产环境使用固定版本标签：
 
 ```bash
-docker pull "$DOCKER_HUB_USERNAME/fabric-erp:3.0"
+docker pull "$DOCKER_HUB_USERNAME/fabric-erp:7.0"
 ```
 
 如果需要始终使用最新构建版本：
@@ -126,7 +126,7 @@ docker run -d \
   --env-file ./api.env \
   -p 7776:3000 \
   -v fabric-erp-uploads:/app/uploads \
-  "$DOCKER_HUB_USERNAME/fabric-erp:3.0"
+  "$DOCKER_HUB_USERNAME/fabric-erp:7.0"
 ```
 
 访问：
@@ -152,7 +152,7 @@ docker run -d \
 拉取新镜像后重新创建容器。图片 Volume 会继续复用，不会删除图片：
 
 ```bash
-docker pull "$DOCKER_HUB_USERNAME/fabric-erp:3.0"
+docker pull "$DOCKER_HUB_USERNAME/fabric-erp:7.0"
 docker rm -f fabric-erp
 docker run -d \
   --name fabric-erp \
@@ -160,10 +160,10 @@ docker run -d \
   --env-file ./api.env \
   -p 7776:3000 \
   -v fabric-erp-uploads:/app/uploads \
-  "$DOCKER_HUB_USERNAME/fabric-erp:3.0"
+  "$DOCKER_HUB_USERNAME/fabric-erp:7.0"
 ```
 
-使用 `latest` 更新时，把命令中的 `3.0` 改为 `latest`。
+使用 `latest` 更新时，把命令中的 `7.0` 改为 `latest`。
 
 ## 运行检查
 
@@ -221,7 +221,7 @@ README 中的 Docker 命令均为服务器拉取和运行命令；GitHub Actions
 1. 检出代码
 2. 构建单容器 Docker 镜像
 3. 登录 Docker Hub
-4. 推送 `3.0` 标签
+4. 推送 `7.0` 标签
 5. 推送 `latest` 标签
 
 工作流不会在开发机执行 Docker Hub 推送，推送操作只发生在 GitHub Actions Runner 中。
@@ -249,6 +249,6 @@ docker run --rm \
 
 - 不要提交 `api.env`、数据库密码、JWT 密钥或 Docker Hub Token。
 - 不要删除 `fabric-erp-uploads` Volume，否则会删除已上传图片和缩略图。
-- 生产环境建议使用 `3.0` 固定标签，确认版本后再更新；`latest` 适合测试或明确接受自动更新的环境。
+- 生产环境建议使用 `7.0` 固定标签，确认版本后再更新；`latest` 适合测试或明确接受自动更新的环境。
 - Docker Hub Token 应使用具有最小权限的 Access Token，不要使用账户登录密码。
 - 服务器防火墙只开放实际需要的端口。

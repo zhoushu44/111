@@ -33,8 +33,9 @@ function MaterialImage({ image, alt, detail = false, onClick }: MaterialImagePro
   return <img className={`${detail ? 'max-h-96 object-contain' : 'h-full object-cover'} w-full ${onClick ? 'cursor-pointer' : ''}`} src={assetUrl(url)} alt={alt} onClick={onClick} onError={() => setSource(source === 'thumbnail' ? 'original' : 'failed')} />
 }
 
-// 文字查询每页条数（后端上限 100）
-const PAGE_SIZE = 20
+// 文字查询可选每页条数（后端上限 100，500 时按多次请求合并）
+const PAGE_SIZE_OPTIONS = [20, 100, 500]
+const BACKEND_PAGE_LIMIT = 100
 
 export default function MaterialQuery() {
   const nav = useNavigate()
@@ -49,6 +50,9 @@ export default function MaterialQuery() {
   const [searched, setSearched] = useState(false)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const [pageSize, setPageSize] = useState(20)
+  // 批量打印勾选（独立于选样清单 selectedIds）
+  const [printIds, setPrintIds] = useState<Set<string>>(new Set())
 
   // 模式切换：文字查询 / 图片智能查询
   const [mode, setMode] = useState<'text' | 'image'>('text')
@@ -89,13 +93,30 @@ export default function MaterialQuery() {
     void Promise.all(requests).catch((error: Error) => setMessage(error.message))
   }, [admin])
 
-  const search = async (targetPage = 1) => {
+  const search = async (targetPage = 1, targetSize = pageSize) => {
     setLoading(true); setMessage('')
     try {
-      const params = new URLSearchParams({ pageSize: String(PAGE_SIZE), page: String(targetPage) })
-      Object.entries(query).forEach(([key, value]) => { if (value) params.set(key, value) })
-      const result = await api.get<{ list: M[]; total: number; page: number; pageSize: number }>(`/materials?${params}`)
-      setList(result.list); setTotal(result.total); setPage(result.page ?? targetPage); setSearched(true)
+      const baseParams = new URLSearchParams()
+      Object.entries(query).forEach(([key, value]) => { if (value) baseParams.set(key, value) })
+      if (targetSize <= BACKEND_PAGE_LIMIT) {
+        const params = new URLSearchParams(baseParams)
+        params.set('pageSize', String(targetSize)); params.set('page', String(targetPage))
+        const result = await api.get<{ list: M[]; total: number; page: number; pageSize: number }>(`/materials?${params}`)
+        setList(result.list); setTotal(result.total); setPage(result.page ?? targetPage)
+      } else {
+        // 超过后端单次上限（100）：拆成多次请求合并为一页
+        const chunkCount = Math.ceil(targetSize / BACKEND_PAGE_LIMIT)
+        const startChunk = (targetPage - 1) * chunkCount
+        const chunks = await Promise.all(
+          Array.from({ length: chunkCount }, (_, i) => {
+            const params = new URLSearchParams(baseParams)
+            params.set('pageSize', String(BACKEND_PAGE_LIMIT)); params.set('page', String(startChunk + i + 1))
+            return api.get<{ list: M[]; total: number }>(`/materials?${params}`)
+          })
+        )
+        setList(chunks.flatMap((chunk) => chunk.list)); setTotal(chunks[0]?.total ?? 0); setPage(targetPage)
+      }
+      setSearched(true)
     } catch (error) { setMessage(error instanceof Error ? error.message : '查询失败') } finally { setLoading(false) }
   }
   const viewDetail = async (id: string) => { try { setDetail(await api.get<M>(`/materials/${id}`)) } catch (error) { setMessage(error instanceof Error ? error.message : '详情加载失败') } }
@@ -203,25 +224,6 @@ export default function MaterialQuery() {
     setShowSelectedPanel(true)
   }
 
-  const toggleSelected = (material: M) => {
-    if (material.status !== 'ACTIVE' && !selectedIds.has(material.id)) {
-      setScanHint(`无法加入：${material.itemNo} 已停用`)
-      setTimeout(() => setScanHint(''), 2000)
-      return
-    }
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(material.id)) {
-        next.delete(material.id)
-        setSelectedItems((items) => items.filter((item) => item.material.id !== material.id))
-      } else {
-        next.add(material.id)
-        setSelectedItems((items) => [...items, { material, quantity: 1 }])
-      }
-      return next
-    })
-  }
-
   const removeSelected = (materialId: string) => {
     setSelectedItems((prev) => prev.filter((item) => item.material.id !== materialId))
     setSelectedIds((prev) => {
@@ -240,6 +242,34 @@ export default function MaterialQuery() {
   const clearAllSelected = () => {
     setSelectedItems([])
     setSelectedIds(new Set())
+  }
+
+  // ---- 批量打印勾选（独立于选样清单） ----
+  const printableList = list.filter((item) => item.status === 'ACTIVE')
+  const allChecked = printableList.length > 0 && printableList.every((item) => printIds.has(item.id))
+
+  const togglePrint = (material: M) => {
+    if (material.status !== 'ACTIVE') return
+    setPrintIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(material.id)) next.delete(material.id)
+      else next.add(material.id)
+      return next
+    })
+  }
+
+  const toggleSelectAllPrint = () => {
+    setPrintIds((prev) => {
+      const next = new Set(prev)
+      if (allChecked) printableList.forEach((item) => next.delete(item.id))
+      else printableList.forEach((item) => next.add(item.id))
+      return next
+    })
+  }
+
+  const batchPrintLabels = () => {
+    if (!printIds.size) { setMessage('请先勾选要打印标签的面料'); return }
+    nav(`/print/labels?materialIds=${[...printIds].join(',')}`)
   }
 
   const saveSampleChoose = async () => {
@@ -293,6 +323,13 @@ export default function MaterialQuery() {
             <select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.status} onChange={(event) => setQuery({ ...query, status: event.target.value })}><option value="">全部状态</option><option value="ACTIVE">启用</option><option value="DISABLED">停用</option></select>
             {admin && <select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.providerId} onChange={(event) => setQuery({ ...query, providerId: event.target.value })}><option value="">全部供应商</option>{providers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}
             <button className="rounded-lg bg-[#123c5a] px-5 text-sm font-semibold text-white" disabled={loading} onClick={() => void search()}>{loading ? '查询中…' : '查询'}</button>
+            <label className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-sm text-slate-600 hover:bg-slate-50">
+              <input type="checkbox" className="h-4 w-4 accent-[#123c5a]" checked={allChecked} disabled={!printableList.length} onChange={toggleSelectAllPrint} />
+              全选
+            </label>
+            <button className="flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 px-4 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={!printIds.size} onClick={batchPrintLabels}>
+              <Printer size={15} /> 标签打印{printIds.size > 0 && <span className="rounded-full bg-[#123c5a] px-1.5 py-0.5 text-xs text-white">{printIds.size}</span>}
+            </button>
           </div>
 
           {/* 扫码录入栏 */}
@@ -324,144 +361,118 @@ export default function MaterialQuery() {
           {list.length > 0 && (
             <>
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm text-slate-500">共 {total} 项面料</p>
+                <p className="text-sm text-slate-500">
+                  共 {total} 项面料{printIds.size > 0 && <span className="ml-2 text-[#123c5a]">已勾选 {printIds.size} 项待打印</span>}
+                </p>
                 {selectedItems.length > 0 && (
                   <button className="text-xs text-slate-400 hover:text-red-500" onClick={clearAllSelected}>清空已选</button>
                 )}
               </div>
-              {/* 大图卡片网格 */}
-              <div className="grid grid-cols-2 gap-4">
-                {list.map((item) => {
-                  const isSelected = selectedIds.has(item.id)
-                  return (
-                    <div
-                      key={item.id}
-                      className={`overflow-hidden rounded-2xl border bg-white transition-shadow hover:shadow-md ${isSelected ? 'border-emerald-400 ring-2 ring-emerald-200' : 'border-slate-200'}`}
-                    >
-                      {/* 图片区 */}
-                      <div className="relative">
-                        <div
-                          className="flex h-[200px] cursor-pointer items-center justify-center bg-slate-100"
-                          onClick={() => void viewDetail(item.id)}
-                        >
-                          <MaterialImage image={item.images[0]} alt={item.name} />
-                        </div>
-                        {/* 复选框 */}
-                        <button
-                          className={`absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border-2 bg-white shadow-sm transition-colors ${isSelected ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300 text-transparent hover:border-slate-400'}`}
-                          onClick={() => toggleSelected(item)}
-                        >
-                          {isSelected && <CheckIcon size={14} />}
-                        </button>
-                        {/* 状态徽标 */}
-                        {item.status === 'DISABLED' && (
-                          <span className="absolute right-3 top-3 rounded-full bg-slate-900/70 px-2 py-0.5 text-xs text-white">停用</span>
-                        )}
-                      </div>
-                      {/* 信息区 */}
-                      <div className="space-y-2 p-4">
-                        {/* 第一行：Item No. */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-[#123c5a]">{item.itemNo}</span>
-                          <span className="text-xs text-slate-400">{item.category.name}</span>
-                        </div>
-                        {/* 名称 */}
-                        <p className="text-sm font-semibold text-slate-800">{item.name}</p>
-                        {/* 字段网格 */}
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                          <div className="flex items-center gap-1">
-                            <span className="text-slate-400">成分</span>
-                            <span className="truncate font-medium text-slate-700">{item.composition || '-'}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-slate-400">幅宽</span>
-                            <span className="font-medium text-slate-700">{item.width || '-'}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-slate-400">纱支</span>
-                            <span className="truncate font-medium text-slate-700">{item.yarnCount || '-'}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-slate-400">密度</span>
-                            <span className="font-medium text-slate-700">{item.density || '-'}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-slate-400">克重</span>
-                            <span className="font-medium text-slate-700">{item.weight || '-'}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-slate-400">厂编</span>
-                            <span className="truncate font-medium text-slate-700">{item.factoryNo || '-'}</span>
-                          </div>
-                          {(item.colorNo || item.color) && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-slate-400">色号</span>
-                              <span className="truncate font-medium text-slate-700">{item.colorNo || '-'}{item.color ? (item.colorNo ? ` / ${item.color}` : item.color) : ''}</span>
+              {/* 表格样式查询结果 */}
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                <table className="w-full min-w-[1100px] text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs text-slate-500">
+                      <th className="w-10 px-3 py-2.5">
+                        <input type="checkbox" className="h-4 w-4 align-middle accent-[#123c5a]" checked={allChecked} disabled={!printableList.length} onChange={toggleSelectAllPrint} title="全选当前页（可打印）" />
+                      </th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">Item No.</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">名称</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">规格</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">成分</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">组织</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">幅宽</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">克重</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">色号</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">产品描述</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">产品备注</th>
+                      {admin && <th className="whitespace-nowrap px-3 py-2.5 font-medium">供应商</th>}
+                      {admin && <th className="whitespace-nowrap px-3 py-2.5 font-medium">成本</th>}
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">状态</th>
+                      <th className="whitespace-nowrap px-3 py-2.5 font-medium">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {list.map((item) => {
+                      const printable = item.status === 'ACTIVE'
+                      const checked = printIds.has(item.id)
+                      return (
+                        <tr key={item.id} className={`border-b border-slate-100 last:border-0 ${checked ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
+                          <td className="px-3 py-2">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 align-middle accent-[#123c5a] disabled:cursor-not-allowed disabled:opacity-40"
+                              checked={checked}
+                              disabled={!printable}
+                              onChange={() => togglePrint(item)}
+                            />
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 font-semibold text-[#123c5a]">{item.itemNo}</td>
+                          <td className="max-w-[220px] truncate px-3 py-2 font-medium text-slate-800" title={item.name}>{item.name}</td>
+                          <td className="max-w-[160px] truncate px-3 py-2 text-slate-600" title={item.specification ?? ''}>{item.specification || '-'}</td>
+                          <td className="max-w-[160px] truncate px-3 py-2 text-slate-600" title={item.composition ?? ''}>{item.composition || '-'}</td>
+                          <td className="max-w-[120px] truncate px-3 py-2 text-slate-600" title={item.construction ?? ''}>{item.construction || '-'}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-slate-600">{item.width || '-'}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-slate-600">{item.weight || '-'}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-slate-600">{item.colorNo || item.color || '-'}</td>
+                          <td className="max-w-[180px] truncate px-3 py-2 text-slate-600" title={item.productDescription ?? ''}>{item.productDescription || '-'}</td>
+                          <td className="max-w-[180px] truncate px-3 py-2 text-slate-600" title={item.remark ?? ''}>{item.remark || '-'}</td>
+                          {admin && <td className="max-w-[140px] truncate px-3 py-2 text-slate-600" title={item.provider?.name ?? ''}>{item.provider?.name || '-'}</td>}
+                          {admin && <td className="whitespace-nowrap px-3 py-2 text-slate-600">{item.cost !== undefined && item.cost !== null ? `¥${Number(item.cost).toFixed(2)}` : '-'}</td>}
+                          <td className="whitespace-nowrap px-3 py-2">
+                            {printable
+                              ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">启用</span>
+                              : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">停用</span>}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <button className="flex items-center gap-1 rounded-lg bg-[#123c5a] px-2.5 py-1 text-xs font-medium text-white hover:opacity-90" onClick={() => void viewDetail(item.id)}>
+                                <Eye size={12} /> 详情
+                              </button>
+                              <button className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={!printable} onClick={() => nav(`/samples/choose?item=${item.itemNo}`)}>
+                                <Plus size={12} /> 选样
+                              </button>
+                              <button className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={!printable} onClick={() => nav(`/print/labels?materialIds=${item.id}`)}>
+                                <Printer size={12} /> 标签
+                              </button>
                             </div>
-                          )}
-                        </div>
-                        {/* 第二行横向字段 */}
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                          {admin && item.provider && (
-                            <span className="text-slate-500">供应商: {item.provider.name}</span>
-                          )}
-                          {admin && item.cost !== undefined && item.cost !== null && (
-                            <span className="text-slate-500">成本: ¥{Number(item.cost).toFixed(2)}</span>
-                          )}
-                          {item.specification && (
-                            <span className="text-slate-500">规格: {item.specification}</span>
-                          )}
-                          {item.unit && <span className="text-slate-500">单位: {item.unit}</span>}
-                        </div>
-                        {/* 操作按钮 */}
-                        <div className="flex items-center gap-2 pt-1.5">
-                          <button className="flex items-center gap-1 rounded-lg bg-[#123c5a] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90" onClick={() => void viewDetail(item.id)}>
-                            <Eye size={13} /> 详情
-                          </button>
-                          <button className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={item.status !== 'ACTIVE'} onClick={() => nav(`/samples/choose?item=${item.itemNo}`)}>
-                            <Plus size={13} /> 选样
-                          </button>
-                          <button className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={item.status !== 'ACTIVE'} onClick={() => nav(`/print/labels?materialIds=${item.id}`)}>
-                            <Printer size={13} /> 标签
-                          </button>
-                          <button
-                            className={`ml-auto flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium ${item.status !== 'ACTIVE' && !isSelected ? 'cursor-not-allowed opacity-40' : ''} ${isSelected ? 'bg-emerald-50 text-emerald-700' : 'border border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                            onClick={() => {
-                              if (isSelected) {
-                                removeSelected(item.id)
-                              } else {
-                                addToSelected(item)
-                              }
-                            }}
-                          >
-                            {isSelected ? <X size={13} /> : <Plus size={13} />}
-                            {isSelected ? '取消' : '选样'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
               {/* 分页 */}
-              {total > PAGE_SIZE && (
-                <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
-                  <span className="text-slate-500">共 {total} 条</span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                      disabled={page <= 1}
-                      onClick={() => void search(page - 1)}
-                    >上一页</button>
-                    <span className="px-2 text-slate-600">第 {page} / {Math.ceil(total / PAGE_SIZE)} 页</span>
-                    <button
-                      className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                      disabled={page >= Math.ceil(total / PAGE_SIZE)}
-                      onClick={() => void search(page + 1)}
-                    >下一页</button>
-                  </div>
+              <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                <span className="flex items-center gap-2 text-slate-500">
+                  共 {total} 条
+                  <select
+                    className="h-8 rounded-lg border border-slate-200 px-2 text-sm text-slate-600"
+                    value={pageSize}
+                    onChange={(event) => {
+                      const nextSize = Number(event.target.value)
+                      setPageSize(nextSize)
+                      void search(1, nextSize)
+                    }}
+                  >
+                    {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size} 条/页</option>)}
+                  </select>
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={page <= 1}
+                    onClick={() => void search(page - 1)}
+                  >上一页</button>
+                  <span className="px-2 text-slate-600">第 {page} / {Math.max(1, Math.ceil(total / pageSize))} 页</span>
+                  <button
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={page >= Math.ceil(total / pageSize)}
+                    onClick={() => void search(page + 1)}
+                  >下一页</button>
                 </div>
-              )}
+              </div>
             </>
           )}
         </div>
@@ -706,13 +717,4 @@ export default function MaterialQuery() {
 
     {detail && <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/40 p-6"><div className="mx-auto max-w-3xl rounded-2xl bg-white p-6"><div className="mb-4 flex justify-between"><h2 className="text-lg font-bold">{detail.itemNo} 详情</h2><button onClick={() => setDetail(null)}>关闭</button></div><div className="mb-4 flex min-h-40 items-center justify-center bg-slate-50"><MaterialImage image={detail.images[0]} alt="面料大图" detail /></div><div className="grid grid-cols-2 gap-3 text-sm">{[['名称', detail.name], ['类别', detail.category.name], ['状态', detail.status === 'ACTIVE' ? '启用' : '停用'], ['规格', detail.specification], ['成分', detail.composition], ['组织结构', detail.construction], ['纱支', detail.yarnCount], ['密度', detail.density], ['幅宽', detail.width], ['克重', detail.weight], ['颜色', detail.color], ['色号', detail.colorNo], ['工厂编号', detail.factoryNo], ['单位', detail.unit], ['加工方式', detail.processingMethod], ['产品描述', detail.productDescription], ['产品备注', detail.remark], ...(admin ? [['供应商', detail.provider?.name], ['成本', detail.cost === undefined ? undefined : `¥${detail.cost}`]] : [])].map(([label, value]) => <p key={label}><b>{label}：</b>{value || '-'}</p>)}</div><div className="mt-5 flex gap-3"><button className="rounded-lg bg-[#123c5a] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={detail.status !== 'ACTIVE'} onClick={() => nav(`/samples/choose?item=${detail.itemNo}`)}>加入选样</button><button className="rounded-lg border border-slate-200 px-4 py-2 text-sm disabled:opacity-50" disabled={detail.status !== 'ACTIVE'} onClick={() => nav(`/print/labels?materialIds=${detail.id}`)}>标签打印</button></div></div></div>}
   </div>
-}
-
-// 简易勾选图标（避免额外依赖）
-function CheckIcon({ size }: { size: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  )
 }
