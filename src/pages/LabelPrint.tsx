@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner'
 import { type LabelVariant } from '@/components/LabelPrintMenu'
 
-type Label = { qrValue: string; data: { materialId: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; construction?: string | null; width?: string | null; weight?: string | null; quantity?: number; remark?: string | null; imageUrl?: string | null } }
+type Label = { qrValue: string; variant?: LabelVariant; header?: boolean; data: { materialId: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; construction?: string | null; width?: string | null; weight?: string | null; quantity?: number; remark?: string | null; imageUrl?: string | null } }
 
 export default function LabelPrint() {
   const [params] = useSearchParams()
@@ -56,7 +56,7 @@ export default function LabelPrint() {
         if (useAgent) {
           // 发送到本地打印代理（software），由它真正输出到标签打印机，等价于老系统经 HUANSI 服务打印
           try {
-            const agentLabels = nextLabels.map((label) => ({ ...label, data: { ...label.data, companyName } }))
+            const agentLabels = nextLabels.map((label) => ({ ...label, variant: label.variant ?? variant, header: label.header ?? header, data: { ...label.data, companyName } }))
             const resp = await fetch(`${agentUrl.replace(/\/$/, '')}/api/print/label`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -173,6 +173,37 @@ export default function LabelPrint() {
     )}
     {!sampleChooseId && scannedIds.length === 0 && scanHint && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{scanHint}</p>}
     {loading && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">加载中…</p>}{message && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{message}</p>}{!loading && !labels.length && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">未获取到可打印标签。</p>}
-    <div id="label-print-area">{labels.map((label, index) => <div key={`${label.data.materialId}-${index}`} className="print-label m-3 flex h-[40mm] w-[70mm] gap-[2mm] overflow-hidden rounded border border-slate-200 bg-white p-[2mm] text-[9px] leading-[1.35]"><div className="min-w-0 flex-1">{header && <div className="mb-[1mm]"><b className="text-[10px]">{companyName}</b></div>}{variant === 'SPEC' ? (<><p className="truncate"><b>Item No.:</b> {label.data.itemNo}</p><p className="truncate"><b>Specification:</b> {label.data.specification || '-'}</p></>) : (<><p className="truncate"><b>Item No.:</b> {label.data.itemNo}</p><p className="whitespace-pre-wrap break-words"><b>Composition:</b> {label.data.composition || '-'}</p><p className="whitespace-pre-wrap break-words"><b>Construction:</b> {label.data.construction || '-'}</p><p><b>Width:</b> {label.data.width || '-'}　<b>Weight:</b> {label.data.weight || '-'}</p><p className="line-clamp-2"><b>Remark:</b> {label.data.remark || '-'}</p></>)}</div><div className="shrink-0 bg-white pt-[1mm]"><QRCodeSVG value={label.qrValue} size={60} level="M" includeMargin={false} /></div></div>)}</div>
+    <div id="label-print-area">{labels.map((label, index) => {
+      const variantOf = label.variant ?? variant
+      const headerOf = label.header ?? header
+      const rows: { k: string; v: string }[] = variantOf === 'SPEC'
+        ? [{ k: 'Specification', v: label.data.specification || '-' }]
+        : [
+          { k: 'Composition', v: label.data.composition || '-' },
+          { k: 'Construction', v: label.data.construction || '-' },
+          { k: 'Width', v: label.data.width || '-' },
+          { k: 'Weight', v: label.data.weight || '-' },
+          { k: 'Remark', v: label.data.remark || '-' },
+        ]
+      return (
+        <div key={`${label.data.materialId}-${index}`} className="print-label m-3 flex h-[40mm] w-[70mm] flex-col overflow-hidden rounded border border-slate-200 bg-white px-[3mm] py-[2.5mm] text-[10px] leading-[1.45] text-black">
+          {headerOf && <div className="mb-[0.8mm] shrink-0 text-center text-[13px] font-bold leading-tight break-words">{companyName}</div>}
+          <div className="flex min-h-0 flex-1 items-stretch gap-[1mm]">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className="text-[11px]"><b>Item No.:</b> {label.data.itemNo}</div>
+              {rows.map((row, rowIndex) => (
+                <div key={rowIndex} className="flex min-w-0">
+                  <span className="shrink-0"><b>{row.k}:</b>&nbsp;</span>
+                  <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">{row.v}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex shrink-0 items-end pb-[0.5mm]">
+              <QRCodeSVG value={label.qrValue} size={70} level="M" includeMargin={false} />
+            </div>
+          </div>
+        </div>
+      )
+    })}</div>
   </div>
 }

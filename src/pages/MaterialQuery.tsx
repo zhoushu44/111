@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus, Printer, Search, Image as ImageIcon, Upload, RefreshCw, Sparkles, Loader2, Clock, Eye, X, ShoppingCart, Scan, ChevronRight, Minus } from 'lucide-react'
+import { Plus, Printer, Search, Image as ImageIcon, Upload, RefreshCw, Sparkles, Loader2, Clock, Eye, X, ShoppingCart, Scan, ChevronRight, Minus, CircleHelp } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '@/components/PageHeader'
 import { api, assetUrl } from '@/lib/api'
@@ -318,7 +318,13 @@ export default function MaterialQuery() {
         <div className="min-w-0 flex-1">
           {/* 筛选栏 */}
           <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-            <input className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.keyword} onChange={(event) => setQuery({ ...query, keyword: event.target.value })} onKeyDown={(event) => event.key === 'Enter' && void search()} placeholder="Item No.、名称、成分、规格…" />
+            <span className="group relative inline-flex items-center gap-1.5">
+              <input className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.keyword} onChange={(event) => setQuery({ ...query, keyword: event.target.value })} onKeyDown={(event) => event.key === 'Enter' && void search()} placeholder="Item No.、名称、成分、规格…" />
+              <CircleHelp size={15} className="shrink-0 cursor-help text-slate-400 hover:text-slate-600" />
+              <span className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-64 rounded-lg bg-slate-800 px-3 py-2 text-xs leading-relaxed text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                条件查询：按关键字模糊匹配 Item No.、名称、成分、规格，可叠加类别/状态/供应商筛选。回车或点「查询」刷新下方结果表，不加入选样清单。
+              </span>
+            </span>
             <select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.categoryId} onChange={(event) => setQuery({ ...query, categoryId: event.target.value })}><option value="">全部类别</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
             <select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.status} onChange={(event) => setQuery({ ...query, status: event.target.value })}><option value="">全部状态</option><option value="ACTIVE">启用</option><option value="DISABLED">停用</option></select>
             {admin && <select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={query.providerId} onChange={(event) => setQuery({ ...query, providerId: event.target.value })}><option value="">全部供应商</option>{providers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}
@@ -344,6 +350,12 @@ export default function MaterialQuery() {
               placeholder="扫码/输入 Item No.，回车连续加入选样清单…"
               autoFocus
             />
+            <span className="group relative inline-flex items-center">
+              <CircleHelp size={15} className="cursor-help text-slate-400 hover:text-slate-600" />
+              <span className="pointer-events-none absolute right-0 top-full z-20 mt-2 w-64 rounded-lg bg-slate-800 px-3 py-2 text-xs leading-relaxed text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                扫码选样：按 Item No. 精确查找并加入「已选清单」（重复扫同一面料会累加数量）。回车后自动清空并重新聚焦，可连续扫多件，不刷新查询结果表。
+              </span>
+            </span>
             <button className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700" onClick={handleScan}>加入清单</button>
             {scanHint && <span className={`text-xs ${scanHint.startsWith('未找到') || scanHint.startsWith('查询失败') ? 'text-red-600' : 'text-emerald-600'}`}>{scanHint}</span>}
             {selectedItems.length > 0 && (

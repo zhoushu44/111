@@ -39,3 +39,7 @@ ImageOut/
 
 # Local verification and deployment scratch files
 _*
+
+# 本地 PostgreSQL 数据目录（开发调试用，不入库）
+.pg-local/
+.postgres-data/
