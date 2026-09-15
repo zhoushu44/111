@@ -1,4 +1,4 @@
-import { BookOpen, ClipboardList, FileSearch, Home, Printer, ScrollText, Settings, ShieldCheck, Shirt, Sparkles, Tags, Truck, UserCog, Users } from 'lucide-react'
+import { ArchiveRestore, BookOpen, ClipboardList, FileSearch, Home, Printer, ScrollText, Settings, ShieldCheck, Shirt, Sparkles, Tags, Truck, UserCog, Users } from 'lucide-react'
 import type { MenuItem } from '@/types'
 
 export const menuItems: MenuItem[] = [
@@ -15,5 +15,6 @@ export const menuItems: MenuItem[] = [
   { path: '/system/roles', label: '角色权限', icon: ShieldCheck, roles: ['admin'], group: '系统管理' },
   { path: '/system/dictionaries', label: '数据字典', icon: Settings, roles: ['admin'], group: '系统管理' },
   { path: '/system/ai-config', label: 'AI 识别设置', icon: Sparkles, roles: ['admin'], group: '系统管理' },
+  { path: '/system/backups', label: '备份管理', icon: ArchiveRestore, roles: ['admin'], group: '系统管理' },
   { path: '/system/logs', label: '操作日志', icon: ScrollText, roles: ['admin'], group: '系统管理' },
 ]

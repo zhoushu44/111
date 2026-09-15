@@ -17,6 +17,7 @@ import usersRouter from './routes/users.js';
 import sampleChoosesRouter from './routes/sample-chooses.js';
 import exportsRouter from './routes/exports.js';
 import labelsRouter from './routes/labels.js';
+import backupsRouter from './routes/backups.js';
 import { errorHandler } from './middleware/error-handler.js';
 
 export const app = express();
@@ -89,6 +90,7 @@ app.use('/api/sample-chooses', sampleChoosesRouter);
 app.use('/api/exports', exportsRouter);
 app.use('/api/labels', labelsRouter);
 app.use('/api/system/users', usersRouter);
+app.use('/api/system/backups', backupsRouter);
 app.use('/api/system', systemRouter);
 
 const webDirectory = path.resolve(process.cwd(), 'web');

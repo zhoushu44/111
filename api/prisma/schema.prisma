@@ -361,3 +361,55 @@ model CompanyInfo {
   updatedAt   DateTime @updatedAt @map("updated_at")
   @@map("company_info")
 }
+
+// 备份类型：数据库全量备份 / 图片引用清单
+enum BackupType {
+  DATABASE
+  MANIFEST
+  FULL
+}
+
+// 备份触发来源：定时任务自动触发 / 管理员手动触发
+enum BackupTrigger {
+  AUTO
+  MANUAL
+}
+
+// 备份执行结果：进行中 / 成功 / 失败
+enum BackupStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+// 备份记录：每次备份落一条，记录文件位置、大小、校验信息与执行结果
+model BackupRecord {
+  id             String        @id @default(uuid()) @db.Uuid
+  type           BackupType
+  trigger        BackupTrigger @default(MANUAL)
+  status         BackupStatus  @default(RUNNING)
+  fileName       String        @map("file_name") @db.VarChar(255)
+  filePath       String        @map("file_path") @db.VarChar(500)
+  fileSize       BigInt        @default(0) @map("file_size")
+  // 是否加密（数据库备份含明文密钥，必须加密）
+  encrypted      Boolean       @default(false)
+  // 关键表行数快照，供恢复后比对
+  tableStats     Json?         @map("table_stats")
+  // 失败原因
+  errorMessage   String?       @map("error_message") @db.VarChar(1000)
+  // 对象存储中的 key（未上传则为空）
+  storageKey     String?       @map("storage_key") @db.VarChar(500)
+  // 是否已上传到对象存储
+  uploaded       Boolean       @default(false)
+  // 上传失败原因（备份本身成功但上传失败时记录）
+  uploadError    String?       @map("upload_error") @db.VarChar(1000)
+  // 是否为受保护的备份（手动触发的重要备份，不受自动清理策略影响）
+  protected      Boolean       @default(false)
+  startedAt      DateTime      @default(now()) @map("started_at")
+  finishedAt     DateTime?     @map("finished_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  @@index([status, startedAt])
+  @@index([type, startedAt])
+  @@map("backup_record")
+}

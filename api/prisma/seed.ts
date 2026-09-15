@@ -20,9 +20,16 @@ async function main() {
     }),
   ]);
 
+  // 初始密码从环境变量读取，避免明文密码进入代码仓库。
+  // 未配置时使用开发默认值，并在执行时打印提醒。
+  const adminInitPassword = process.env.ADMIN_INIT_PASSWORD || 'zs1236547';
+  const staffInitPassword = process.env.STAFF_INIT_PASSWORD || 'Staff@123456';
+  if (!process.env.ADMIN_INIT_PASSWORD) {
+    console.warn('[seed] 未配置 ADMIN_INIT_PASSWORD，使用默认初始密码。生产环境请在 api.env 中显式配置。');
+  }
   const [adminHash, staffHash] = await Promise.all([
-    bcrypt.hash('zs1236547', 12),
-    bcrypt.hash('Staff@123456', 12),
+    bcrypt.hash(adminInitPassword, 12),
+    bcrypt.hash(staffInitPassword, 12),
   ]);
 
   // 历史账号迁移：旧种子曾用用户名 admin，现统一改为 zhoushu。
@@ -35,18 +42,21 @@ async function main() {
     });
   }
 
-  // 确保 zhoushu 管理员账号存在且凭据正确（幂等）
+  // 账号仅在「不存在」时创建并写入初始密码。
+  // 已存在的账号只同步显示名与角色，绝不覆盖 passwordHash——否则生产环境执行 seed
+  // 会把用户自行修改过的密码静默重置为初始密码。
+  const ensureAccount = async (username: string, displayName: string, hash: string, roleId: string) => {
+    const existing = await prisma.userAccount.findUnique({ where: { username } });
+    if (existing) {
+      await prisma.userAccount.update({ where: { username }, data: { displayName, roleId } });
+      return;
+    }
+    await prisma.userAccount.create({ data: { username, displayName, passwordHash: hash, roleId } });
+  };
+
   await Promise.all([
-    prisma.userAccount.upsert({
-      where: { username: 'zhoushu' },
-      update: { displayName: '系统管理员', passwordHash: adminHash, roleId: adminRole.id },
-      create: { username: 'zhoushu', displayName: '系统管理员', passwordHash: adminHash, roleId: adminRole.id },
-    }),
-    prisma.userAccount.upsert({
-      where: { username: 'staff' },
-      update: { displayName: '业务员工', passwordHash: staffHash, roleId: staffRole.id },
-      create: { username: 'staff', displayName: '业务员工', passwordHash: staffHash, roleId: staffRole.id },
-    }),
+    ensureAccount('zhoushu', '系统管理员', adminHash, adminRole.id),
+    ensureAccount('staff', '业务员工', staffHash, staffRole.id),
   ]);
 
   const category = await prisma.materialCategory.upsert({

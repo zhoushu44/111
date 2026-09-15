@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export type LabelVariant = 'SPEC' | 'FULL'
@@ -31,9 +31,13 @@ type Props = {
   className?: string
   /** 触发按钮文字，默认「标签」 */
   label?: string
+  /** 自定义触发按钮内容（图标等），传入后覆盖 label */
+  children?: ReactNode
+  /** 触发按钮原生 title 提示 */
+  title?: string
 }
 
-export default function LabelPrintMenu({ sampleChooseId, materialIds, disabled, className, label = '标签' }: Props) {
+export default function LabelPrintMenu({ sampleChooseId, materialIds, disabled, className, label = '标签', children, title }: Props) {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
 
@@ -61,9 +65,10 @@ export default function LabelPrintMenu({ sampleChooseId, materialIds, disabled, 
         type="button"
         className={className ?? 'rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50'}
         disabled={disabled}
+        title={title}
         onClick={() => setOpen(true)}
       >
-        {label}
+        {children ?? label}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6" onClick={() => setOpen(false)}>

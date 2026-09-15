@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Plus, Printer, Search, Image as ImageIcon, Upload, RefreshCw, Sparkles, Loader2, Clock, Eye, X, ShoppingCart, Scan, ChevronRight, Minus, CircleHelp } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '@/components/PageHeader'
+import LabelPrintMenu from '@/components/LabelPrintMenu'
 import { api, assetUrl } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 
@@ -267,11 +268,6 @@ export default function MaterialQuery() {
     })
   }
 
-  const batchPrintLabels = () => {
-    if (!printIds.size) { setMessage('请先勾选要打印标签的面料'); return }
-    nav(`/print/labels?materialIds=${[...printIds].join(',')}`)
-  }
-
   const saveSampleChoose = async () => {
     if (!selectedCustomerId) return setMessage('请先选择客户')
     if (!selectedItems.length) return setMessage('已选清单为空')
@@ -333,9 +329,13 @@ export default function MaterialQuery() {
               <input type="checkbox" className="h-4 w-4 accent-[#123c5a]" checked={allChecked} disabled={!printableList.length} onChange={toggleSelectAllPrint} />
               全选
             </label>
-            <button className="flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 px-4 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={!printIds.size} onClick={batchPrintLabels}>
+            <LabelPrintMenu
+              materialIds={[...printIds]}
+              disabled={!printIds.size}
+              className="flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 px-4 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            >
               <Printer size={15} /> 标签打印{printIds.size > 0 && <span className="rounded-full bg-[#123c5a] px-1.5 py-0.5 text-xs text-white">{printIds.size}</span>}
-            </button>
+            </LabelPrintMenu>
           </div>
 
           {/* 扫码录入栏 */}
@@ -444,9 +444,9 @@ export default function MaterialQuery() {
                               <button className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={!printable} onClick={() => nav(`/samples/choose?item=${item.itemNo}`)}>
                                 <Plus size={12} /> 选样
                               </button>
-                              <button className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40" disabled={!printable} onClick={() => nav(`/print/labels?materialIds=${item.id}`)}>
+                              <LabelPrintMenu materialIds={[item.id]} disabled={!printable} className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40">
                                 <Printer size={12} /> 标签
-                              </button>
+                              </LabelPrintMenu>
                             </div>
                           </td>
                         </tr>
@@ -714,9 +714,9 @@ export default function MaterialQuery() {
                       <button title="加入选样" disabled={item.status !== 'ACTIVE'} className="flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40" onClick={() => nav(`/samples/choose?item=${item.itemNo}`)}>
                         <Plus size={16} />
                       </button>
-                      <button title="标签打印" disabled={item.status !== 'ACTIVE'} className="flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40" onClick={() => nav(`/print/labels?materialIds=${item.id}`)}>
+                      <LabelPrintMenu materialIds={[item.id]} disabled={item.status !== 'ACTIVE'} title="标签打印" className="flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40">
                         <Printer size={16} />
-                      </button>
+                      </LabelPrintMenu>
                     </div>
                   </div>
                 </div>
@@ -727,6 +727,6 @@ export default function MaterialQuery() {
       </div>
     )}
 
-    {detail && <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/40 p-6"><div className="mx-auto max-w-3xl rounded-2xl bg-white p-6"><div className="mb-4 flex justify-between"><h2 className="text-lg font-bold">{detail.itemNo} 详情</h2><button onClick={() => setDetail(null)}>关闭</button></div><div className="mb-4 flex min-h-40 items-center justify-center bg-slate-50"><MaterialImage image={detail.images[0]} alt="面料大图" detail /></div><div className="grid grid-cols-2 gap-3 text-sm">{[['名称', detail.name], ['类别', detail.category.name], ['状态', detail.status === 'ACTIVE' ? '启用' : '停用'], ['规格', detail.specification], ['成分', detail.composition], ['组织结构', detail.construction], ['纱支', detail.yarnCount], ['密度', detail.density], ['幅宽', detail.width], ['克重', detail.weight], ['颜色', detail.color], ['色号', detail.colorNo], ['工厂编号', detail.factoryNo], ['单位', detail.unit], ['加工方式', detail.processingMethod], ['产品描述', detail.productDescription], ['产品备注', detail.remark], ...(admin ? [['供应商', detail.provider?.name], ['成本', detail.cost === undefined ? undefined : `¥${detail.cost}`]] : [])].map(([label, value]) => <p key={label}><b>{label}：</b>{value || '-'}</p>)}</div><div className="mt-5 flex gap-3"><button className="rounded-lg bg-[#123c5a] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={detail.status !== 'ACTIVE'} onClick={() => nav(`/samples/choose?item=${detail.itemNo}`)}>加入选样</button><button className="rounded-lg border border-slate-200 px-4 py-2 text-sm disabled:opacity-50" disabled={detail.status !== 'ACTIVE'} onClick={() => nav(`/print/labels?materialIds=${detail.id}`)}>标签打印</button></div></div></div>}
+    {detail && <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/40 p-6"><div className="mx-auto max-w-3xl rounded-2xl bg-white p-6"><div className="mb-4 flex justify-between"><h2 className="text-lg font-bold">{detail.itemNo} 详情</h2><button onClick={() => setDetail(null)}>关闭</button></div><div className="mb-4 flex min-h-40 items-center justify-center bg-slate-50"><MaterialImage image={detail.images[0]} alt="面料大图" detail /></div><div className="grid grid-cols-2 gap-3 text-sm">{[['名称', detail.name], ['类别', detail.category.name], ['状态', detail.status === 'ACTIVE' ? '启用' : '停用'], ['规格', detail.specification], ['成分', detail.composition], ['组织结构', detail.construction], ['纱支', detail.yarnCount], ['密度', detail.density], ['幅宽', detail.width], ['克重', detail.weight], ['颜色', detail.color], ['色号', detail.colorNo], ['工厂编号', detail.factoryNo], ['单位', detail.unit], ['加工方式', detail.processingMethod], ['产品描述', detail.productDescription], ['产品备注', detail.remark], ...(admin ? [['供应商', detail.provider?.name], ['成本', detail.cost === undefined ? undefined : `¥${detail.cost}`]] : [])].map(([label, value]) => <p key={label}><b>{label}：</b>{value || '-'}</p>)}</div><div className="mt-5 flex gap-3"><button className="rounded-lg bg-[#123c5a] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={detail.status !== 'ACTIVE'} onClick={() => nav(`/samples/choose?item=${detail.itemNo}`)}>加入选样</button><LabelPrintMenu materialIds={[detail.id]} disabled={detail.status !== 'ACTIVE'} className="rounded-lg border border-slate-200 px-4 py-2 text-sm disabled:opacity-50">标签打印</LabelPrintMenu></div></div></div>}
   </div>
 }

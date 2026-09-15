@@ -39,8 +39,19 @@ function wrapHanging(prefix, value, lineChars) {
   return lines
 }
 
+/** 过滤价格类内容（USD/CNY 等报价不允许出现在标签 Remark 上） */
+function stripPrice(str, max) {
+  let s = String(str)
+    .replace(/(?:USD|US\$|CNY|RMB|JPY|EUR|GBP|TWD|HKD|NT\$|\$|￥|¥)\s*\d[\d.,]*/gi, ' ')
+    .replace(/[#＃]\s*\d[\d.,]*/g, ' ')
+  s = s.replace(/[\s；;、,，-]{2,}/g, '；').replace(/^[；;、,，-\s]+|[；;、,，-\s]+$/g, '')
+  s = s.trim()
+  if (!s) return '-'
+  return s.length > max ? s.slice(0, max - 1) + '…' : s
+}
+
 /**
- * @param {object} label { qrValue:string, variant?:'SPEC'|'FULL', header?:boolean, data:{ itemNo,name,specification,composition,construction,width,weight,remark,companyName } }
+ * @param {object} label { qrValue:string, variant?:'SPEC'|'FULL', header?:boolean, copies?:number, data:{ itemNo,name,specification,composition,construction,width,weight,remark,companyName } }
  * @param {object} cfg printer.label { widthMm,heightMm,dpi }
  */
 function buildZpl(label, cfg) {
@@ -49,6 +60,7 @@ function buildZpl(label, cfg) {
   const H = dots(cfg.heightMm, dpi)
   const d = label.data || {}
   const qr = (label.qrValue || d.itemNo || '').toString()
+  const copies = Math.max(1, Math.min(100, Number(label.copies) || 1))
 
   const variant = label.variant || 'FULL'
   const withHeader = label.header !== false
@@ -67,7 +79,8 @@ function buildZpl(label, cfg) {
 
   const lines = []
   lines.push('^XA')
-  lines.push(`^PW${W}^LL${H}^LH0,0`)
+  // 显式固定字段方向（不依赖打印机/驱动默认旋转）与标签尺寸
+  lines.push(`^FWN^PW${W}^LL${H}^LH0,0`)
 
   const x = dots(2, dpi)
   let y = dots(2, dpi)
@@ -90,7 +103,7 @@ function buildZpl(label, cfg) {
       { k: 'Construction', v: d.construction },
       { k: 'Width', v: d.width },
       { k: 'Weight', v: d.weight },
-      { k: 'Remark', v: d.remark },
+      { k: 'Remark', v: stripPrice(d.remark ?? '', 60) },
     ]
 
   rows.forEach((row) => {
@@ -102,8 +115,10 @@ function buildZpl(label, cfg) {
   })
 
   lines.push(`^FO${qrX},${qrY}^BQN,2,${qrMag}^FDMA,${qr}^FS`)
+  // 份数：指令级控制（等价老系统模板份数），避免依赖驱动默认份数
+  lines.push(`^PQ${copies},0,0,N`)
   lines.push('^XZ')
   return lines.join('\n')
 }
 
-module.exports = { buildZpl, dots }
+module.exports = { buildZpl, dots, stripPrice }
