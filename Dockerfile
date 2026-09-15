@@ -24,7 +24,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && apt-get install -y --no-install-recommends openssl ca-certificates postgresql-client \
   && rm -rf /var/lib/apt/lists/*
 COPY api/package.json api/package-lock.json ./
 RUN npm ci --omit=dev

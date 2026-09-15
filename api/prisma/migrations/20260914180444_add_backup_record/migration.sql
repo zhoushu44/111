@@ -7,8 +7,8 @@ CREATE TYPE "BackupTrigger" AS ENUM ('AUTO', 'MANUAL');
 -- CreateEnum
 CREATE TYPE "BackupStatus" AS ENUM ('RUNNING', 'SUCCESS', 'FAILED');
 
--- DropIndex
-DROP INDEX "customer_salesman_idx";
+-- DropIndex（幂等：老库可能未创建该索引）
+DROP INDEX IF EXISTS "customer_salesman_idx";
 
 -- CreateTable
 CREATE TABLE "backup_record" (
