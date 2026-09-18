@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Printer, X } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useSearchParams } from 'react-router-dom'
@@ -142,23 +141,18 @@ export default function LabelPrint() {
     <style>{`@media print {
       @page { size: 70mm 40mm; margin: 0; }
       html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-      body > *:not(#label-print-area) { display: none !important; }
-      #label-print-area { display: block !important; width: 70mm; margin: 0 !important; padding: 0 !important; }
-      .print-label {
-        width: 70mm !important; height: 40mm !important;
-        margin: 0 !important; padding: 2mm 3mm !important;
-        border: 0 !important; border-radius: 0 !important;
-        box-sizing: border-box; overflow: hidden;
-        break-inside: avoid; break-after: page; page-break-after: always;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact;
-      }
+      body * { visibility: hidden !important; }
+      #label-print-area, #label-print-area * { visibility: visible !important; }
+      /* 只保留 #label-print-area 及其祖先链参与排版，其余节点 display:none 彻底退出文档流。
+         这样标签区回到正常流顶部，才能按 break-after 逐张分页（fixed 不会跨页，会导致 N 张标签叠在同一页）。 */
+      body *:not(#label-print-area):not(#label-print-area *):not(:has(#label-print-area)) { display: none !important; }
+      body *:has(#label-print-area) { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; }
+      #label-print-area { display: block !important; width: 70mm !important; margin: 0 !important; padding: 0 !important; }
+      .print-label { width: 70mm !important; height: 40mm !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-sizing: border-box !important; overflow: hidden !important; break-after: page; page-break-after: always; break-inside: avoid; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .print-label:last-child { break-after: auto; page-break-after: auto; }
-    }
-    @media screen {
-      #label-print-area { display: flex; flex-wrap: wrap; gap: 12px; padding: 16px; }
     }`}</style>
     <PageHeader title="标签打印" description={`当前版式：标签(${variant === 'SPEC' ? '仅规格' : '全'})${header ? '' : '·无抬头'} ｜ Argox CP-2140M/3140：70 × 40 mm 标签；二维码内容为 Item No.。`} />
-    <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">本页会自动识别本机打印代理（软件）：检测到即用代理直连标签打印机（等价老系统经 HUANSI 服务打印），未检测到则自动退回浏览器打印。也可手动指定打印方式。<br />用浏览器打印时请在打印预览里选纸张 <b>70 × 40 mm</b>（或名为 70x40 / 新卷 的自定义纸型）、方向 <b>横向</b>、边距 <b>无</b>、缩放 <b>100%</b>。</div>
+    <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">本页会自动识别本机打印代理（软件）：检测到即用代理直连标签打印机（等价老系统经 HUANSI 服务打印），未检测到则自动退回浏览器打印。也可手动指定打印方式。<br />首次用浏览器打印请先在 Windows 安装 Argox 官方驱动，纸张设为 <b>70 × 40 mm</b>、缩放 <b>100%</b>、边距 <b>无</b>。</div>
     <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
       <label className="flex items-center gap-2 text-sm text-slate-700">打印方式
         <select value={agentMode} onChange={(e) => setAgentMode(e.target.value as 'auto' | 'agent' | 'browser')} className="rounded-lg border border-slate-200 p-2 text-sm">
@@ -191,40 +185,37 @@ export default function LabelPrint() {
     )}
     {!sampleChooseId && scannedIds.length === 0 && scanHint && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{scanHint}</p>}
     {loading && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">加载中…</p>}{message && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{message}</p>}{!loading && !labels.length && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">未获取到可打印标签。</p>}
-    {typeof document !== 'undefined' && createPortal(
-      <div id="label-print-area">{labels.flatMap((label, index) => Array.from({ length: label.copies ?? copies }, (_, copyIdx) => ({ label, key: `${label.data.materialId}-${index}-${copyIdx}` }))).map(({ label, key }) => {
-        const variantOf = label.variant ?? variant
-        const headerOf = label.header ?? header
-        const rows: { k: string; v: string }[] = variantOf === 'SPEC'
-          ? [{ k: 'Specification', v: label.data.specification || '-' }]
-          : [
-            { k: 'Composition', v: label.data.composition || '-' },
-            { k: 'Construction', v: label.data.construction || '-' },
-            { k: 'Width', v: label.data.width || '-' },
-            { k: 'Weight', v: label.data.weight || '-' },
-            { k: 'Remark', v: displayRemark(label.data.remark) },
-          ]
-        return (
-          <div key={key} className="print-label flex h-[40mm] w-[70mm] flex-col overflow-hidden rounded border border-slate-200 bg-white px-[3mm] py-[2.5mm] text-[10px] leading-[1.45] text-black">
-            {headerOf && <div className="mb-[0.8mm] shrink-0 text-center text-[13px] font-bold leading-tight break-words">{companyName}</div>}
-            <div className="flex min-h-0 flex-1 items-stretch gap-[1mm]">
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div className="text-[11px]"><b>Item No.:</b> {label.data.itemNo}</div>
-                {rows.map((row, rowIndex) => (
-                  <div key={rowIndex} className="flex min-w-0">
-                    <span className="shrink-0"><b>{row.k}:</b>&nbsp;</span>
-                    <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">{row.v}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex shrink-0 items-end pb-[0.5mm]">
-                <QRCodeSVG value={label.qrValue} size={70} level="M" includeMargin={false} />
-              </div>
+    <div id="label-print-area">{labels.flatMap((label, index) => Array.from({ length: label.copies ?? copies }, (_, copyIdx) => ({ label, key: `${label.data.materialId}-${index}-${copyIdx}` }))).map(({ label, key }) => {
+      const variantOf = label.variant ?? variant
+      const headerOf = label.header ?? header
+      const rows: { k: string; v: string }[] = variantOf === 'SPEC'
+        ? [{ k: 'Specification', v: label.data.specification || '-' }]
+        : [
+          { k: 'Composition', v: label.data.composition || '-' },
+          { k: 'Construction', v: label.data.construction || '-' },
+          { k: 'Width', v: label.data.width || '-' },
+          { k: 'Weight', v: label.data.weight || '-' },
+          {k: 'Remark', v: displayRemark(label.data.remark)},
+        ]
+      return (
+        <div key={key} className="print-label m-3 flex h-[40mm] w-[70mm] flex-col overflow-hidden rounded border border-slate-200 bg-white px-[3mm] py-[2.5mm] text-[10px] leading-[1.45] text-black">
+          {headerOf && <div className="mb-[0.8mm] shrink-0 text-center text-[13px] font-bold leading-tight break-words">{companyName}</div>}
+          <div className="flex min-h-0 flex-1 items-stretch gap-[1mm]">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className="text-[11px]"><b>Item No.:</b> {label.data.itemNo}</div>
+              {rows.map((row, rowIndex) => (
+                <div key={rowIndex} className="flex min-w-0">
+                  <span className="shrink-0"><b>{row.k}:</b>&nbsp;</span>
+                  <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">{row.v}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex shrink-0 items-end pb-[0.5mm]">
+              <QRCodeSVG value={label.qrValue} size={70} level="M" includeMargin={false} />
             </div>
           </div>
-        )
-      })}</div>,
-      document.body,
-    )}
+        </div>
+      )
+    })}</div>
   </div>
 }
