@@ -20,7 +20,9 @@ const bootstrapAdminSchema = z.object({
 }).refine((body) => body.password === body.confirmPassword, { message: '两次输入的密码不一致', path: ['confirmPassword'] });
 const refreshSchema = z.object({ refreshToken: z.string().min(1) });
 type AuthenticatedUser = { id: string; username: string; displayName: string; role: { code: RoleCode; name: string } };
-type DatabaseClient = Prisma.TransactionClient | typeof prisma;
+// prisma 经 $extends 扩展后，其类型与基础 Prisma.TransactionClient 不再兼容；
+// 这里统一取扩展客户端的「事务视图」（去掉事务与连接管理方法），事务内外的客户端都能传入。
+type DatabaseClient = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'>;
 
 const publicUser = (user: AuthenticatedUser) => ({
   id: user.id, username: user.username, displayName: user.displayName, role: user.role,
