@@ -16,6 +16,125 @@ function displayRemark(remark: string | null | undefined) {
   return s || '-'
 }
 
+/* ===== 标签版式：与 print-agent/lib/zpl.js 完全一致（单位定义、缩字号档位、行高、版心边距）。
+   两边必须同步修改，否则浏览器预览与标签机实机输出会不一致。 ===== */
+const LABEL_DPI = 203
+const PAD_MM = 2
+const GAP_MM = 1
+/** 缩字号档位：从原字号逐档缩小，取第一个能整体放下的 */
+const SCALES = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6]
+/** 各元素基准字号/行高（dots @203dpi，随档位等比缩放） */
+const BASE = { rowFont: 20, rowLine: 22, itemFont: 24, itemLine: 30, headerFont: 30, headerLine: 36 }
+const MIN_UNITS_PER_LINE = 6
+const MM_PER_DOT = 25.4 / LABEL_DPI
+
+const dots = (mm: number) => Math.round((mm * LABEL_DPI) / 25.4)
+const dotToMm = (d: number) => d * MM_PER_DOT
+
+/** 全角字符（中文、全角标点等）占 2 个字宽单位，其余占 1 个 */
+function charUnits(code: number) {
+  return (code >= 0x1100 && code <= 0x115f) ||
+    (code >= 0x2e80 && code <= 0xa4cf) ||
+    (code >= 0xac00 && code <= 0xd7a3) ||
+    (code >= 0xf900 && code <= 0xfaff) ||
+    (code >= 0xfe30 && code <= 0xfe6f) ||
+    (code >= 0xff00 && code <= 0xff60) ||
+    (code >= 0xffe0 && code <= 0xffe6) ||
+    (code >= 0x20000 && code <= 0x3fffd) ? 2 : 1
+}
+
+function textUnits(str: string) {
+  let total = 0
+  for (const ch of String(str)) total += charUnits(ch.codePointAt(0) as number)
+  return total
+}
+
+/** 按字宽单位折行，只返回内容本身（不含字段名前缀） */
+function wrapUnits(value: string | null | undefined, cap: number) {
+  const text = String(value == null ? '' : value).replace(/\r\n?/g, '\n').replace(/\n/g, ' ').trim() || '-'
+  const out: string[] = []
+  let cur = ''
+  let used = 0
+  for (const ch of text) {
+    const u = charUnits(ch.codePointAt(0) as number)
+    if (used + u > cap && cur) { out.push(cur); cur = ''; used = 0 }
+    cur += ch
+    used += u
+  }
+  out.push(cur)
+  return out
+}
+
+type LaidRow = { k: string; indent: number; lines: string[] }
+type LabelLayout = {
+  pad: number; gap: number; qrSize: number; textW: number; contentH: number
+  rowFont: number; rowLine: number; itemFont: number; itemLine: number
+  headerFont: number; headerLine: number; headerLines: number
+  withHeader: boolean; header: string; itemNo: string; rows: LaidRow[]
+}
+
+/** 折行 + 自动缩字号，返回各元素最终字号（dots）与逐行文本 */
+function layoutLabel(label: Label, variantOf: LabelVariant, headerOf: boolean, companyName: string): LabelLayout {
+  const W = dots(70)
+  const H = dots(40)
+  const pad = dots(PAD_MM)
+  const gap = dots(GAP_MM)
+  // 二维码固定右下角，文本列宽度需让出二维码及其间距，避免文字压到码上
+  const qrSize = Math.min(Math.round(H * 0.58), Math.round(W * 0.28))
+  const textW = Math.max(40, W - pad * 2 - gap - qrSize)
+  const contentH = H - pad * 2
+  const d = label.data
+  const withHeader = headerOf
+  const header = companyName || 'Mint Chance Textile Co.,Ltd'
+  const itemNo = String(d.itemNo == null || d.itemNo === '' ? '-' : d.itemNo)
+  const rows = variantOf === 'SPEC'
+    ? [{ k: 'Specification', v: d.specification }]
+    : [
+      { k: 'Composition', v: d.composition },
+      { k: 'Construction', v: d.construction },
+      { k: 'Width', v: d.width },
+      { k: 'Weight', v: d.weight },
+      { k: 'Remark', v: displayRemark(d.remark) },
+    ]
+
+  let last: LabelLayout | null = null
+  for (const scale of SCALES) {
+    const rowFont = Math.max(8, Math.round(BASE.rowFont * scale))
+    const rowLine = Math.round(BASE.rowLine * scale)
+    const itemFont = Math.round(BASE.itemFont * scale)
+    const itemLine = Math.round(BASE.itemLine * scale)
+    const headerFont = Math.round(BASE.headerFont * scale)
+    const headerLine = Math.round(BASE.headerLine * scale)
+    const cap = Math.max(MIN_UNITS_PER_LINE, Math.floor((textW * 2) / rowFont))
+    // 每行都要容纳悬挂缩进（首行「字段名: 」、续行等宽空白），故内容上限先减去缩进占宽
+    const laid = rows.map((row) => {
+      const indent = textUnits(row.k) + 2
+      return { k: row.k, indent, lines: wrapUnits(row.v, Math.max(MIN_UNITS_PER_LINE, cap - indent)) }
+    })
+    const headerCap = Math.max(MIN_UNITS_PER_LINE, Math.floor((W * 2) / headerFont))
+    const headerLines = withHeader ? Math.min(2, Math.max(1, Math.ceil(textUnits(header) / headerCap))) : 0
+    const height = headerLines * headerLine + itemLine + laid.reduce((sum, row) => sum + row.lines.length * rowLine, 0)
+    last = { pad, gap, qrSize, textW, contentH, rowFont, rowLine, itemFont, itemLine, headerFont, headerLine, headerLines, header, withHeader, itemNo, rows: laid }
+    if (height <= contentH) return last
+  }
+
+  // 兜底：最小字号仍放不下，按版面容量截取并在末行加 …（正常长度不会走到这里）
+  const base = last as LabelLayout
+  const budget = Math.max(1, Math.floor((base.contentH - base.headerLines * base.headerLine - base.itemLine) / base.rowLine))
+  const kept: LaidRow[] = []
+  let left = budget
+  for (const row of base.rows) {
+    if (left <= 0) break
+    const take = Math.min(left, row.lines.length)
+    const lines = row.lines.slice(0, take)
+    if (take < row.lines.length) lines[take - 1] = lines[take - 1].slice(0, -1) + '…'
+    kept.push({ k: row.k, indent: row.indent, lines })
+    left -= take
+  }
+  base.rows = kept
+  return base
+}
+
 export default function LabelPrint() {
   const [params] = useSearchParams()
   const materialIds = useMemo(() => params.get('materialIds')?.split(',').filter(Boolean) ?? [], [params])
@@ -188,31 +307,18 @@ export default function LabelPrint() {
     <div id="label-print-area">{labels.flatMap((label, index) => Array.from({ length: label.copies ?? copies }, (_, copyIdx) => ({ label, key: `${label.data.materialId}-${index}-${copyIdx}` }))).map(({ label, key }) => {
       const variantOf = label.variant ?? variant
       const headerOf = label.header ?? header
-      const rows: { k: string; v: string }[] = variantOf === 'SPEC'
-        ? [{ k: 'Specification', v: label.data.specification || '-' }]
-        : [
-          { k: 'Composition', v: label.data.composition || '-' },
-          { k: 'Construction', v: label.data.construction || '-' },
-          { k: 'Width', v: label.data.width || '-' },
-          { k: 'Weight', v: label.data.weight || '-' },
-          {k: 'Remark', v: displayRemark(label.data.remark)},
-        ]
+      const L = layoutLabel(label, variantOf, headerOf, companyName)
       return (
-        <div key={key} className="print-label m-3 flex h-[40mm] w-[70mm] flex-col overflow-hidden rounded border border-slate-200 bg-white px-[3mm] py-[2.5mm] text-[10px] leading-[1.45] text-black">
-          {headerOf && <div className="mb-[0.8mm] shrink-0 text-center text-[13px] font-bold leading-tight break-words">{companyName}</div>}
-          <div className="flex min-h-0 flex-1 items-stretch gap-[1mm]">
-            <div className="flex min-w-0 flex-1 flex-col">
-              <div className="text-[11px]"><b>Item No.:</b> {label.data.itemNo}</div>
-              {rows.map((row, rowIndex) => (
-                <div key={rowIndex} className="flex min-w-0">
-                  <span className="shrink-0"><b>{row.k}:</b>&nbsp;</span>
-                  <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">{row.v}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex shrink-0 items-end pb-[0.5mm]">
-              <QRCodeSVG value={label.qrValue} size={70} level="M" includeMargin={false} />
-            </div>
+        <div key={key} className="print-label relative m-3 flex flex-col overflow-hidden rounded border border-slate-200 bg-white text-black" style={{ width: '70mm', height: '40mm', padding: `${PAD_MM}mm` }}>
+          {L.withHeader && <div className="shrink-0 font-bold" style={{ fontSize: `${dotToMm(L.headerFont)}mm`, lineHeight: `${dotToMm(L.headerLine)}mm`, textAlign: 'center' }}>{L.header}</div>}
+          <div style={{ width: `${dotToMm(L.textW)}mm` }}>
+            <div style={{ fontSize: `${dotToMm(L.itemFont)}mm`, lineHeight: `${dotToMm(L.itemLine)}mm`, whiteSpace: 'pre' }}><b>Item No.:</b> {L.itemNo}</div>
+            {L.rows.map((row) => row.lines.map((line, lineIndex) => (
+              <div key={`${row.k}-${lineIndex}`} style={{ fontSize: `${dotToMm(L.rowFont)}mm`, lineHeight: `${dotToMm(L.rowLine)}mm`, whiteSpace: 'pre' }}>{lineIndex === 0 ? `${row.k}: ` : ' '.repeat(row.indent)}{line}</div>
+            )))}
+          </div>
+          <div style={{ position: 'absolute', right: `${PAD_MM}mm`, bottom: `${PAD_MM}mm` }}>
+            <QRCodeSVG value={label.qrValue} size={Math.round((dotToMm(L.qrSize) * 96) / 25.4)} level="M" includeMargin={false} />
           </div>
         </div>
       )

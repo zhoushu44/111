@@ -43,7 +43,7 @@ router.get('/', async (req, res, next) => {
   try {
     const query = listSchema.parse(req.query);
     const where = { ...(query.status ? { status: query.status } : {}), ...(query.keyword ? { OR: [{ name: { contains: query.keyword, mode: 'insensitive' as const } }, { code: { contains: query.keyword, mode: 'insensitive' as const } }] } : {}) };
-    const [list, total] = await prisma.$transaction([prisma.materialCategory.findMany({ where, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], skip: (query.page - 1) * query.pageSize, take: query.pageSize, include: { parent: { select: { id: true, name: true } } } }), prisma.materialCategory.count({ where })]);
+    const [list, total] = await Promise.all([prisma.materialCategory.findMany({ where, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], skip: (query.page - 1) * query.pageSize, take: query.pageSize, include: { parent: { select: { id: true, name: true } } } }), prisma.materialCategory.count({ where })]);
     ok(res, { list, total, page: query.page, pageSize: query.pageSize });
   } catch (error) { next(error); }
 });

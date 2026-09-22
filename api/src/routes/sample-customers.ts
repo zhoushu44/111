@@ -25,7 +25,7 @@ router.get('/', async (req, res, next) => {
         ],
       } : {}),
     };
-    const [list, total] = await prisma.$transaction([
+    const [list, total] = await Promise.all([
       prisma.customer.findMany({
         where,
         select: { id: true, code: true, name: true },

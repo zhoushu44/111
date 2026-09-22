@@ -34,7 +34,7 @@ router.get('/operation-logs', async (req, res, next) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 20));
-    const [list, total] = await prisma.$transaction([
+    const [list, total] = await Promise.all([
       prisma.operationLog.findMany({ orderBy: { createdAt: 'desc' }, skip: (page - 1) * pageSize, take: pageSize, include: { user: { select: { username: true, displayName: true } } } }),
       prisma.operationLog.count(),
     ]);
