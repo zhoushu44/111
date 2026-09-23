@@ -12,16 +12,31 @@
 | 串口(COM) 读条码枪 (`READCOMMIZED`) | 串口扫描器（可选 `serialport`）经 SSE 推送；Web 端另可用键盘楔子扫码 |
 | 选样单预览 / 打印 (`SPreview`+`PrintDlg`) | Web 端 `SampleChoosePreview.tsx` + `LabelPrint.tsx` |
 
-## 运行
+## 运行（推荐：免安装单文件 exe）
+
+直接把 `tools/MQPrintAgent.exe` 拷到任意电脑，**双击即用**：
+
+- 无需安装 Node.js、无需任何运行库（只用 Windows 自带的 .NET Framework，Win10/11 默认存在）
+- 启动后常驻右下角托盘，自动监听 `http://localhost:8790`
+- 默认开机自启（托盘菜单可关），开机后网页即可直接打印
+- 全部打印参数固定在 exe 内：打印机 `Argox CP-2140M PPLB`、标签 `70×40mm @203dpi`
+- 打印走 **winspool RAW 直发**，绕过驱动渲染，**所有电脑输出完全一致**
+
+托盘菜单：打开状态页 / 打印测试标签 / 开机自动启动（勾选开关）/ 退出。
+
+分发方式：拷贝 `MQPrintAgent.exe` 一个文件到各电脑 → 双击 → 完成。可选在同目录放 `config.json` 覆盖默认参数：
+
+```json
+{ "port": 8790, "printerName": "Argox CP-2140M PPLB", "label": { "widthMm": 70, "heightMm": 40, "dpi": 203 } }
+```
+
+### 备用：Node 版（开发调试用）
 
 ```bash
 cd print-agent
 node server.js
 # 打开 http://localhost:8790 进行配置与测试打印
 ```
-
-零原生依赖即可启动（raw 模式 + 仪表盘 + ZPL 生成）。  
-串口扫描器需先安装：`npm i serialport`（可选）。
 
 ## 配置（config.json 或仪表盘）
 
@@ -32,9 +47,8 @@ node server.js
 
 ## Web 端对接
 
-标签打印页（`/print/labels`）新增「使用本地打印代理（软件）」开关：
-- 关闭 → 浏览器打印（选 Argox 驱动，原有行为）。
-- 开启 → 标签数据 `POST /api/print/label` 发给本代理，由本机真正打到标签打印机（等价老系统打印路径）。
+标签打印页（`/print/labels`）固定走本地打印代理：点击「直接打印（exe）」→ 标签数据 `POST /api/print/label` 发给本机 exe → 由本机真正打到标签打印机。  
+无需选择纸张、缩放、打印机等任何参数，也不用打开浏览器打印窗口。
 
 ## API
 

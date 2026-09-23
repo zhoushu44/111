@@ -178,4 +178,40 @@ function buildZpl(label, cfg) {
   return out.join('\n')
 }
 
-module.exports = { buildZpl, layoutLabel, dots, stripPrice, textUnits }
+/**
+ * 把整张标签的 1-bit 位图包成 PPLB（Argox 原生 / Eltron EPL2）指令。
+ * 这是「全机一致」的物理通道：位图由浏览器按固定 203dpi 渲染，
+ * 打印机只负责逐点还原，完全不经过字体/字库/驱动缩放，因此：
+ *   1) 中文可用（不依赖打印机内置字库板）
+ *   2) 二维码可用（由浏览器 QR 库渲染进位图）
+ *   3) 版式固定（坐标即像素，任何电脑输出完全相同）
+ * @param {Buffer} raster 1-bit 位图数据，行优先、每行按字节对齐
+ * @param {number} widthDots 位图宽（dot）
+ * @param {number} heightDots 位图高（dot）
+ * @param {number} copies 份数
+ * @param {number} gapMm 标签间隙(mm)。成卷间隙纸必须给实际缝隙宽度：
+ *   PPLB 的 Q 指令第二参数是间隙(dot)，填 0 会让打印机自己测纸，
+ *   定位漂移会把内容印到标签外（表现为只打出一半）。
+ * @param {number} xOffsetMm 横向偏移补偿(mm)。70mm 标签居中装纸时，
+ *   打印头左基准比标签左边偏左约 16mm，GW 起点须右移该值，
+ *   否则左侧内容会被切掉（本机实测 16mm = 128 dot）。
+ * @returns {Buffer} 完整 PPLB 指令（ASCII 头尾 + 二进制位图）
+ */
+function buildPplbRaster(raster, widthDots, heightDots, copies = 1, gapMm = 2, dpi = 203, xOffsetMm = 16) {
+  const W = Math.max(8, Math.round(widthDots))
+  const H = Math.max(1, Math.round(heightDots))
+  const bytesPerRow = Math.ceil(W / 8)
+  const need = bytesPerRow * H
+  if (raster.length !== need) {
+    throw new Error(`位图长度不符：期望 ${need} 字节（${bytesPerRow}x${H}），实际 ${raster.length}`)
+  }
+  const n = Math.max(1, Math.min(100, Number(copies) || 1))
+  const gapDots = Math.max(0, Math.round((Number(gapMm) || 0) * Number(dpi) / 25.4))
+  const xOffset = Math.max(0, Math.round((Number(xOffsetMm) || 0) * Number(dpi) / 25.4))
+  // q=标签宽(dot)，Q=标签高+间隙(dot)，R=原点，GW=直接写图形
+  const header = Buffer.from(`N\nq${W}\nQ${H},${gapDots}\nR0,0\nGW${xOffset},0,${bytesPerRow},${H},`, 'ascii')
+  const footer = Buffer.from(`\nP${n}\n`, 'ascii')
+  return Buffer.concat([header, raster, footer])
+}
+
+module.exports = { buildZpl, buildPplbRaster, layoutLabel, dots, stripPrice, textUnits }

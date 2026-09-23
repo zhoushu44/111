@@ -23,6 +23,8 @@ const PAD_MM = 2
 const GAP_MM = 1
 /** 缩字号档位：从原字号逐档缩小，取第一个能整体放下的 */
 const SCALES = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6]
+// 备注专属档位：备注过长时优先只缩备注字号，其他行保持不变
+const REMARK_SCALES = [1, 0.9, 0.8, 0.7, 0.6, 0.5]
 /** 各元素基准字号/行高（dots @203dpi，随档位等比缩放） */
 const BASE = { rowFont: 20, rowLine: 22, itemFont: 24, itemLine: 30, headerFont: 30, headerLine: 36 }
 const MIN_UNITS_PER_LINE = 6
@@ -65,11 +67,11 @@ function wrapUnits(value: string | null | undefined, cap: number) {
   return out
 }
 
-type LaidRow = { k: string; indent: number; lines: string[] }
+type LaidRow = { k: string; indent: number; fontScale: number; lines: string[] }
 type LabelLayout = {
   pad: number; gap: number; qrSize: number; textW: number; contentH: number
   rowFont: number; rowLine: number; itemFont: number; itemLine: number
-  headerFont: number; headerLine: number; headerLines: number
+  headerFont: number; headerLine: number; headerLines: number; headerText: string[]
   withHeader: boolean; header: string; itemNo: string; rows: LaidRow[]
 }
 
@@ -105,17 +107,36 @@ function layoutLabel(label: Label, variantOf: LabelVariant, headerOf: boolean, c
     const itemLine = Math.round(BASE.itemLine * scale)
     const headerFont = Math.round(BASE.headerFont * scale)
     const headerLine = Math.round(BASE.headerLine * scale)
-    const cap = Math.max(MIN_UNITS_PER_LINE, Math.floor((textW * 2) / rowFont))
-    // 每行都要容纳悬挂缩进（首行「字段名: 」、续行等宽空白），故内容上限先减去缩进占宽
-    const laid = rows.map((row) => {
-      const indent = textUnits(row.k) + 2
-      return { k: row.k, indent, lines: wrapUnits(row.v, Math.max(MIN_UNITS_PER_LINE, cap - indent)) }
-    })
-    const headerCap = Math.max(MIN_UNITS_PER_LINE, Math.floor((W * 2) / headerFont))
-    const headerLines = withHeader ? Math.min(2, Math.max(1, Math.ceil(textUnits(header) / headerCap))) : 0
-    const height = headerLines * headerLine + itemLine + laid.reduce((sum, row) => sum + row.lines.length * rowLine, 0)
-    last = { pad, gap, qrSize, textW, contentH, rowFont, rowLine, itemFont, itemLine, headerFont, headerLine, headerLines, header, withHeader, itemNo, rows: laid }
-    if (height <= contentH) return last
+
+    // 备注（最后一个字段）过长时优先只缩备注字号，其他行保持当前档位不变
+    const remarkIdx = rows.length - 1
+    const remarkRow = rows[remarkIdx]
+    const subRows = rows.slice(0, -1)
+
+    for (const rs of REMARK_SCALES) {
+      const rRowFont = Math.max(6, Math.round(rowFont * rs))
+      const rRowLine = Math.max(8, Math.round(rowLine * rs))
+      const cap = Math.max(MIN_UNITS_PER_LINE, Math.floor((textW * 2) / rRowFont))
+      // 每行都要容纳悬挂缩进（首行「字段名: 」、续行等宽空白），故内容上限先减去缩进占宽
+      const laid: LaidRow[] = subRows.map((row) => {
+        const indent = textUnits(row.k) + 2
+        return { k: row.k, indent, fontScale: 1, lines: wrapUnits(row.v, Math.max(MIN_UNITS_PER_LINE, cap - indent)) }
+      })
+      const remarkIndent = textUnits(remarkRow.k) + 2
+      laid.push({ k: remarkRow.k, indent: remarkIndent, fontScale: rs, lines: wrapUnits(remarkRow.v, Math.max(MIN_UNITS_PER_LINE, cap - remarkIndent)) })
+
+      const headerCap = Math.max(MIN_UNITS_PER_LINE, Math.floor((W * 2) / headerFont))
+      // 标题真正按宽度拆行（与 exe 渲染、ZPL ^FB 行为一致），最多 2 行
+      const headerWrapped = withHeader ? wrapUnits(header, headerCap) : []
+      const headerText = headerWrapped.length > 2 ? [headerWrapped[0], headerWrapped[1] + '…'] : headerWrapped
+      const headerLines = withHeader ? Math.max(1, headerText.length) : 0
+      const height = headerLines * headerLine + itemLine + laid.reduce((sum, row) => {
+        const line = row.fontScale === 1 ? rowLine : rRowLine
+        return sum + row.lines.length * line
+      }, 0)
+      last = { pad, gap, qrSize, textW, contentH, rowFont, rowLine, itemFont, itemLine, headerFont, headerLine, headerLines, headerText, header, withHeader, itemNo, rows: laid }
+      if (height <= contentH) return last
+    }
   }
 
   // 兜底：最小字号仍放不下，按版面容量截取并在末行加 …（正常长度不会走到这里）
@@ -154,13 +175,11 @@ export default function LabelPrint() {
   const scannedIdsRef = useRef<string[]>([])
   const [scanHint, setScanHint] = useState('')
   const scanQueue = useRef(Promise.resolve())
-  // 本地打印代理（software，复刻老系统经 HUANSI 服务直连打印机）
-  // 自动识别：本机代理在线则走代理直连打印机，否则退回浏览器打印
-  const [agentMode, setAgentMode] = useState<'auto' | 'agent' | 'browser'>('auto')
-  const [agentUrl, setAgentUrl] = useState('http://localhost:8790')
+  // 本地打印代理（labelrender.exe 直发）：网页点击打印 → 本机代理 → 标签打印机
+  // 版式/纸张/字体全部固定在 exe 内，无需任何打印设置，所有电脑输出一致
+  const agentUrl = 'http://localhost:8790'
   const [agentOnline, setAgentOnline] = useState(false)
   const [agentMsg, setAgentMsg] = useState('')
-  const useAgent = agentMode === 'agent' || (agentMode === 'auto' && agentOnline)
 
   const requestLabels = async (mode: 'PREVIEW' | 'PRINT', scanIds = scannedIds) => {
     const payload = { temporaryRemark: temporaryRemark || null, remarkMode, copies, mode, variant, header }
@@ -179,25 +198,20 @@ export default function LabelPrint() {
       const nextLabels = await requestLabels(mode)
       setLabels(nextLabels)
       if (mode === 'PRINT') {
-        if (useAgent) {
-          // 发送到本地打印代理（software），由它真正输出到标签打印机，等价于老系统经 HUANSI 服务打印
-          try {
-            const agentLabels = nextLabels.map((label) => ({ ...label, variant: label.variant ?? variant, header: label.header ?? header, data: { ...label.data, companyName } }))
-            const resp = await fetch(`${agentUrl.replace(/\/$/, '')}/api/print/label`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ labels: agentLabels }),
-            })
-            const data = await resp.json()
-            if (!resp.ok || !data.ok) throw new Error((data.errors && data.errors.join('；')) || '打印代理返回错误')
-            const totalCopies = nextLabels.reduce((sum, l) => sum + (l.copies ?? copies), 0)
-            setMessage(`已通过本地打印代理发送 ${totalCopies} 张到标签打印机（份数由打印指令 ^PQ 控制，不受打印机默认设置影响）。`)
-          } catch (error) {
-            setMessage('打印代理发送失败：' + (error instanceof Error ? error.message : String(error)) + '（可改回浏览器打印，或检查代理是否启动）')
-          }
-        } else {
-          setMessage('请在系统打印窗口选择 “Argox CP-2140M/3140”，纸张设为 70 × 40 mm、缩放 100%、边距“无”。')
-          window.setTimeout(() => window.print(), 80)
+        // 固定走本地打印代理（labelrender.exe RAW 直发），不走浏览器打印
+        try {
+          const agentLabels = nextLabels.map((label) => ({ ...label, variant: label.variant ?? variant, header: label.header ?? header, data: { ...label.data, companyName } }))
+          const resp = await fetch(`${agentUrl.replace(/\/$/, '')}/api/print/label`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ labels: agentLabels }),
+          })
+          const data = await resp.json()
+          if (!resp.ok || !data.ok) throw new Error(data.error || '打印代理返回错误')
+          const totalCopies = nextLabels.reduce((sum, l) => sum + (l.copies ?? copies), 0)
+          setMessage(`已直接发送 ${totalCopies} 张到标签打印机（固定版式 70×40mm，无需任何打印设置）。`)
+        } catch (error) {
+          setMessage('打印失败：' + (error instanceof Error ? error.message : String(error)) + '（请确认本机打印代理已启动）')
         }
       }
     } catch (error) { setMessage(error instanceof Error ? error.message : '标签生成失败') } finally { setLoading(false) }
@@ -224,7 +238,7 @@ export default function LabelPrint() {
       .catch(() => {
         if (!alive) return
         setAgentOnline(false)
-        setAgentMsg('未检测到本地代理（将使用浏览器打印）')
+        setAgentMsg('未检测到本地代理（请启动 MQPrintAgent.exe）')
       })
     check()
     const t = window.setInterval(check, 8000)
@@ -271,17 +285,9 @@ export default function LabelPrint() {
       .print-label:last-child { break-after: auto; page-break-after: auto; }
     }`}</style>
     <PageHeader title="标签打印" description={`当前版式：标签(${variant === 'SPEC' ? '仅规格' : '全'})${header ? '' : '·无抬头'} ｜ Argox CP-2140M/3140：70 × 40 mm 标签；二维码内容为 Item No.。`} />
-    <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">本页会自动识别本机打印代理（软件）：检测到即用代理直连标签打印机（等价老系统经 HUANSI 服务打印），未检测到则自动退回浏览器打印。也可手动指定打印方式。<br />首次用浏览器打印请先在 Windows 安装 Argox 官方驱动，纸张设为 <b>70 × 40 mm</b>、缩放 <b>100%</b>、边距 <b>无</b>。</div>
+    <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">本页通过本机打印代理直接驱动标签打印机（固定 70 × 40 mm 版式，无需选择打印机或设置纸张，所有电脑打印效果一致）。请保持本机打印代理（mq-print-agent）处于运行状态。</div>
     <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-      <label className="flex items-center gap-2 text-sm text-slate-700">打印方式
-        <select value={agentMode} onChange={(e) => setAgentMode(e.target.value as 'auto' | 'agent' | 'browser')} className="rounded-lg border border-slate-200 p-2 text-sm">
-          <option value="auto">自动识别</option>
-          <option value="agent">本地代理（软件）</option>
-          <option value="browser">浏览器打印</option>
-        </select>
-      </label>
-      {agentMode !== 'browser' && <input className="w-56 rounded-lg border border-slate-200 p-2 text-sm" value={agentUrl} onChange={(e) => setAgentUrl(e.target.value)} placeholder="http://localhost:8790" />}
-      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${agentOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}><span className={`h-2 w-2 rounded-full ${agentOnline ? 'bg-emerald-500' : 'bg-slate-400'}`} />{agentMode === 'auto' ? (agentOnline ? '已自动识别：走本地代理' : '已自动识别：走浏览器打印') : (agentMode === 'agent' ? '已指定本地代理' : '已指定浏览器打印')}</span>
+      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${agentOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}><span className={`h-2 w-2 rounded-full ${agentOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />{agentOnline ? '打印代理在线' : '打印代理未启动'}</span>
       {agentMsg && <span className="text-xs text-slate-500">{agentMsg}</span>}
     </div>
     <div className="mb-4 flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200 bg-white p-4">
@@ -292,7 +298,7 @@ export default function LabelPrint() {
           onKeyDown={(event) => { if (event.key === 'Enter') { handleScan((event.target as HTMLInputElement).value); (event.target as HTMLInputElement).value = '' } }}
         /><span className={`ml-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${scanning ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}><span className={`h-2 w-2 rounded-full ${scanning ? 'animate-pulse bg-emerald-500' : 'bg-slate-400'}`} />{scanning ? '扫描中…' : '扫描器就绪'}</span></label>
       )}
-      <label>临时备注<input className="ml-2 rounded-lg border border-slate-200 p-2 text-sm" value={temporaryRemark} onChange={(event) => setTemporaryRemark(event.target.value)} /></label><label><input type="radio" checked={remarkMode === 'REPLACE'} onChange={() => setRemarkMode('REPLACE')} /> 覆盖</label><label><input type="radio" checked={remarkMode === 'APPEND'} onChange={() => setRemarkMode('APPEND')} /> 追加</label><label>份数<input className="ml-2 w-16 rounded-lg border border-slate-200 p-2 text-sm" type="number" min="1" max="100" value={copies} onChange={(event) => setCopies(Math.min(100, Math.max(1, Number(event.target.value) || 1)))} /></label><button className="rounded-lg bg-slate-100 px-3 py-1 text-sm" disabled={loading} onClick={() => void callLabels('PREVIEW')}>{loading ? '处理中…' : '更新预览'}</button><button className="rounded-lg bg-[#123c5a] px-3 py-1 text-sm text-white disabled:opacity-50" disabled={loading || !labels.length} onClick={() => void callLabels('PRINT')}><Printer size={16} className="mr-1 inline" />{useAgent ? '打印到标签打印机（代理）' : '打印到 Argox'}</button>
+      <label>临时备注<input className="ml-2 rounded-lg border border-slate-200 p-2 text-sm" value={temporaryRemark} onChange={(event) => setTemporaryRemark(event.target.value)} /></label><label><input type="radio" checked={remarkMode === 'REPLACE'} onChange={() => setRemarkMode('REPLACE')} /> 覆盖</label><label><input type="radio" checked={remarkMode === 'APPEND'} onChange={() => setRemarkMode('APPEND')} /> 追加</label><label>份数<input className="ml-2 w-16 rounded-lg border border-slate-200 p-2 text-sm" type="number" min="1" max="100" value={copies} onChange={(event) => setCopies(Math.min(100, Math.max(1, Number(event.target.value) || 1)))} /></label><button className="rounded-lg bg-slate-100 px-3 py-1 text-sm" disabled={loading} onClick={() => void callLabels('PREVIEW')}>{loading ? '处理中…' : '更新预览'}</button><button className="rounded-lg bg-[#123c5a] px-3 py-1 text-sm text-white disabled:opacity-50" disabled={loading || !labels.length} onClick={() => void callLabels('PRINT')}><Printer size={16} className="mr-1 inline" />直接打印（exe）</button>
     </div>
     {!sampleChooseId && scannedIds.length > 0 && (
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
@@ -310,12 +316,18 @@ export default function LabelPrint() {
       const L = layoutLabel(label, variantOf, headerOf, companyName)
       return (
         <div key={key} className="print-label relative m-3 flex flex-col overflow-hidden rounded border border-slate-200 bg-white text-black" style={{ width: '70mm', height: '40mm', padding: `${PAD_MM}mm` }}>
-          {L.withHeader && <div className="shrink-0 font-bold" style={{ fontSize: `${dotToMm(L.headerFont)}mm`, lineHeight: `${dotToMm(L.headerLine)}mm`, textAlign: 'center' }}>{L.header}</div>}
+          {L.withHeader && L.headerText.map((hl, hi) => (
+            <div key={`hdr-${hi}`} className="shrink-0 font-bold" style={{ fontSize: `${dotToMm(L.headerFont)}mm`, lineHeight: `${dotToMm(L.headerLine)}mm`, textAlign: 'center', whiteSpace: 'pre' }}>{hl}</div>
+          ))}
           <div style={{ width: `${dotToMm(L.textW)}mm` }}>
             <div style={{ fontSize: `${dotToMm(L.itemFont)}mm`, lineHeight: `${dotToMm(L.itemLine)}mm`, whiteSpace: 'pre' }}><b>Item No.:</b> {L.itemNo}</div>
-            {L.rows.map((row) => row.lines.map((line, lineIndex) => (
-              <div key={`${row.k}-${lineIndex}`} style={{ fontSize: `${dotToMm(L.rowFont)}mm`, lineHeight: `${dotToMm(L.rowLine)}mm`, whiteSpace: 'pre' }}>{lineIndex === 0 ? `${row.k}: ` : ' '.repeat(row.indent)}{line}</div>
-            )))}
+            {L.rows.map((row) => {
+              const rowFont = row.fontScale === 1 ? L.rowFont : Math.max(6, Math.round(L.rowFont * row.fontScale))
+              const rowLine = row.fontScale === 1 ? L.rowLine : Math.max(8, Math.round(L.rowLine * row.fontScale))
+              return row.lines.map((line, lineIndex) => (
+                <div key={`${row.k}-${lineIndex}`} style={{ fontSize: `${dotToMm(rowFont)}mm`, lineHeight: `${dotToMm(rowLine)}mm`, whiteSpace: 'pre' }}>{lineIndex === 0 ? `${row.k}: ` : ' '.repeat(row.indent)}{line}</div>
+              ))
+            })}
           </div>
           <div style={{ position: 'absolute', right: `${PAD_MM}mm`, bottom: `${PAD_MM}mm` }}>
             <QRCodeSVG value={label.qrValue} size={Math.round((dotToMm(L.qrSize) * 96) / 25.4)} level="M" includeMargin={false} />

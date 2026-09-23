@@ -2,7 +2,7 @@
 const http = require('http')
 const fs = require('fs')
 const path = require('path')
-const { printLabel } = require('./lib/printer')
+const { printLabel, printLabelJob, printRaster } = require('./lib/printer')
 const { startScanner } = require('./lib/scanner')
 
 const CONFIG_PATH = path.join(__dirname, 'config.json')
@@ -27,9 +27,22 @@ function sendJson(res, code, obj) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' })
   res.end(body)
 }
-function cors(res) {
-  const allow = (config.corsOrigins || []).join(', ')
-  res.setHeader('Access-Control-Allow-Origin', allow || '*')
+/** 计算应回给浏览器的单一 Origin。
+ *  CORS 规范只允许「单个 origin」或「*」，多个来源不能用逗号拼接，
+ *  否则浏览器会判定响应头非法并拒绝整个请求。
+ *  本代理只监听本机回环，且请求方是任意部署地址的 ERP 网页，
+ *  因此优先回显请求方 Origin；白名单命中时同样回显。 */
+function resolveOrigin(req) {
+  const origin = req.headers.origin
+  if (!origin) return '*'
+  const list = config.corsOrigins || []
+  // 白名单留空或含 '*' 表示放行全部来源
+  if (!list.length || list.includes('*')) return origin
+  return list.includes(origin) ? origin : list[0]
+}
+function cors(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', resolveOrigin(req))
+  res.setHeader('Vary', 'Origin')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 }
@@ -45,8 +58,8 @@ function readBody(req) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`)
   // CORS 预检
-  if (req.method === 'OPTIONS') { cors(res); res.writeHead(204); return res.end() }
-  if (url.pathname.startsWith('/api/')) cors(res)
+  if (req.method === 'OPTIONS') { cors(req, res); res.writeHead(204); return res.end() }
+  if (url.pathname.startsWith('/api/')) cors(req, res)
 
   try {
     // —— 仪表盘 ——
@@ -65,18 +78,22 @@ const server = http.createServer(async (req, res) => {
       })
     }
 
-    // —— 打印标签 ——
+    // —— 打印标签：整批交给 labelrender.exe（渲染+PPLB+RAW 直发一体，固定版式） ——
     if (req.method === 'POST' && url.pathname === '/api/print/label') {
       const body = await readBody(req)
       const labels = Array.isArray(body.labels) ? body.labels : (body.label ? [body.label] : [])
       if (!labels.length) return sendJson(res, 400, { ok: false, error: '缺少 labels' })
-      const errors = []
-      let printed = 0
-      for (const lb of labels) {
-        try { await printLabel(config.printer, lb); printed++ }
-        catch (e) { errors.push(String(e.message || e)) }
-      }
-      return sendJson(res, errors.length && printed === 0 ? 502 : 200, { ok: errors.length === 0, printed, errors })
+      const result = await printLabelJob(config.printer, labels)
+      return sendJson(res, 200, { ok: true, printed: result.printed != null ? result.printed : labels.length })
+    }
+
+    // —— 自检：打印一张内置测试位图，验证「网页 → 本机代理 → 打印机」全链路 ——
+    if (req.method === 'POST' && url.pathname === '/api/print/selftest') {
+      const { buildSelfTestRaster } = require('./lib/selftest')
+      const { widthDots, heightDots, raster } = buildSelfTestRaster(config.printer.label)
+      const copies = Number((await readBody(req)).copies) || 1
+      await printRaster(config.printer, raster.toString('base64'), widthDots, heightDots, copies)
+      return sendJson(res, 200, { ok: true, printed: 1, widthDots, heightDots })
     }
 
     // —— 保存配置 ——
@@ -93,7 +110,8 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache', Connection: 'keep-alive',
-        'Access-Control-Allow-Origin': (config.corsOrigins || []).join(', ') || '*',
+        'Access-Control-Allow-Origin': resolveOrigin(req),
+        'Vary': 'Origin',
       })
       res.write('retry: 3000\n\n')
       scannerClients.add(res)
