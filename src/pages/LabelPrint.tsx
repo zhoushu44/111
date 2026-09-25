@@ -217,6 +217,23 @@ export default function LabelPrint() {
     } catch (error) { setMessage(error instanceof Error ? error.message : '标签生成失败') } finally { setLoading(false) }
   }
 
+  // 手动测纸：让打印机走纸对齐标签起点（换纸/换卷后点一次）
+  // 首张打印时代理会自动测纸，这里只是给现场一个随时重校的入口
+  const calibrateAgent = async () => {
+    try {
+      const resp = await fetch(`${agentUrl.replace(/\/$/, '')}/api/print/calibrate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      const data = await resp.json()
+      if (!resp.ok || !data.ok) throw new Error(data.error || '校准失败')
+      setMessage('已发送测纸指令，打印机会走纸对齐标签起点。')
+    } catch (error) {
+      setMessage('校准失败：' + (error instanceof Error ? error.message : String(error)) + '（请确认本机打印代理已启动）')
+    }
+  }
+
   useEffect(() => { if (hasParams) void callLabels('PREVIEW') }, [sampleChooseId, materialIds.join(',')])
 
   // 标签抬头：统一取系统「公司信息」，与老系统一致；失败回退到品牌名
@@ -289,6 +306,7 @@ export default function LabelPrint() {
     <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
       <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${agentOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}><span className={`h-2 w-2 rounded-full ${agentOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />{agentOnline ? '打印代理在线' : '打印代理未启动'}</span>
       {agentMsg && <span className="text-xs text-slate-500">{agentMsg}</span>}
+      <button className="rounded-lg bg-slate-100 px-3 py-1 text-xs text-slate-700 disabled:opacity-50" disabled={!agentOnline} onClick={() => void calibrateAgent()}>校准标签定位</button>
     </div>
     <div className="mb-4 flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200 bg-white p-4">
       {!sampleChooseId && (

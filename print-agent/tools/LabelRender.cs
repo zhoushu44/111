@@ -38,6 +38,9 @@ internal static class LabelRender
     private const int MIN_UNITS_PER_LINE = 6;
     private const string DEFAULT_HEADER = "Mint Chance Textile Co.,Ltd";
     private const string DEFAULT_ITEM_NO = "CN26F81059";
+    // 测纸（自动校准）指令：PPLB 的 xa = Auto Calibration，会走纸 1~4 张找到标签缝隙
+    // 首张打印前先发一次，打印机才会把原点对到标签起点，否则从当前纸位直接开印导致内容偏移/被切
+    private const string DEFAULT_CALIBRATE_CMD = "xa\n";
 
     // 缩字号档位：从原字号逐档缩小，取第一个能整体放下的
     private static readonly double[] SCALES = { 1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6 };
@@ -49,6 +52,39 @@ internal static class LabelRender
     private const int BASE_HEADER_FONT = 30, BASE_HEADER_LINE = 36;
 
     private static int Dots(double mm, int dpi) { return (int)Math.Round(mm * dpi / MM); }
+
+    // XP 没有「微软雅黑」，且 GDI+ 不做字体链接（找到的字体缺字形时直接画方框），
+    // 所以必须按「优先级 + 本机确实存在」挑一个能显示中文的字体，否则 XP 上中文全变方框。
+    private static readonly string[] FONT_CANDIDATES = {
+        "Microsoft YaHei",   // Vista 及以上中文默认字体（Win7/10/11）
+        "Microsoft YaHei UI",
+        "SimHei",            // 黑体，XP 简体中文自带
+        "SimSun",            // 宋体，XP 简体中文自带
+        "NSimSun",
+        "Arial Unicode MS",
+        "Arial"
+    };
+    private static string _fontName;
+
+    /// <summary>挑一个本机存在的中文字体名（XP 上回退到黑体/宋体）</summary>
+    private static string FontName()
+    {
+        if (_fontName != null) return _fontName;
+        foreach (string name in FONT_CANDIDATES)
+        {
+            try
+            {
+                using (FontFamily ff = new FontFamily(name))
+                {
+                    if (ff.Name.Length > 0) { _fontName = name; break; }
+                }
+            }
+            catch { }
+        }
+        // 候选字体全不存在时用系统默认字体族，避免构造 Font 时抛异常
+        if (_fontName == null) _fontName = FontFamily.GenericSansSerif.Name;
+        return _fontName;
+    }
 
     // ===== 版式 =====
 
@@ -282,9 +318,9 @@ internal static class LabelRender
             g.InterpolationMode = InterpolationMode.NearestNeighbor;
             g.PixelOffsetMode = PixelOffsetMode.Half;
 
-            using (Font fh = new Font("Microsoft YaHei", L.HeaderFont, FontStyle.Bold, GraphicsUnit.Pixel))
-            using (Font fi = new Font("Microsoft YaHei", L.ItemFont, GraphicsUnit.Pixel))
-            using (Font fib = new Font("Microsoft YaHei", L.ItemFont, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (Font fh = new Font(FontName(), L.HeaderFont, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (Font fi = new Font(FontName(), L.ItemFont, GraphicsUnit.Pixel))
+            using (Font fib = new Font(FontName(), L.ItemFont, FontStyle.Bold, GraphicsUnit.Pixel))
             using (StringFormat sf = new StringFormat(StringFormat.GenericTypographic))
             using (StringFormat sfRow = new StringFormat(StringFormat.GenericTypographic))
             using (StringFormat sfCenter = new StringFormat(StringFormat.GenericTypographic))
@@ -319,7 +355,7 @@ internal static class LabelRender
                     // 备注行可独立缩小字号（FontScale < 1），其他行用统一字号
                     int rowFont = (row.FontScale == 1) ? L.RowFont : Math.Max(6, (int)Math.Round(L.RowFont * row.FontScale));
                     int rowLine = (row.FontScale == 1) ? L.RowLine : Math.Max(8, (int)Math.Round(L.RowLine * row.FontScale));
-                    using (Font fRow = new Font("Microsoft YaHei", rowFont, GraphicsUnit.Pixel))
+                    using (Font fRow = new Font(FontName(), rowFont, GraphicsUnit.Pixel))
                     {
                         for (int li = 0; li < row.Lines.Count; li++)
                         {
@@ -372,7 +408,9 @@ internal static class LabelRender
             byte[] line = new byte[stride];
             for (int yy = 0; yy < H; yy++)
             {
-                Marshal.Copy(bd.Scan0 + yy * stride, line, 0, stride);
+                // .NET 3.5 的 IntPtr 没有 + 运算符，需自行按地址偏移（4.0 才支持 Scan0 + n）
+                IntPtr rowPtr = new IntPtr(bd.Scan0.ToInt64() + (long)yy * stride);
+                Marshal.Copy(rowPtr, line, 0, stride);
                 int baseIdx = yy * bpr;
                 for (int xx = 0; xx < W; xx++)
                 {
@@ -426,7 +464,7 @@ internal static class LabelRender
                 g.FillRectangle(br, W - m - s, H - m - s, s, s);
 
                 // mm 刻度（顶边、左边）
-                using (Font f = new Font("Microsoft YaHei", 16, GraphicsUnit.Pixel))
+                using (Font f = new Font(FontName(), 16, GraphicsUnit.Pixel))
                 using (StringFormat sf = new StringFormat(StringFormat.GenericTypographic))
                 {
                     sf.FormatFlags |= StringFormatFlags.NoWrap | StringFormatFlags.NoClip | StringFormatFlags.MeasureTrailingSpaces;
@@ -439,7 +477,7 @@ internal static class LabelRender
                 }
 
                 // 中央文字
-                using (Font f2 = new Font("Microsoft YaHei", 22, FontStyle.Bold, GraphicsUnit.Pixel))
+                using (Font f2 = new Font(FontName(), 22, FontStyle.Bold, GraphicsUnit.Pixel))
                 using (StringFormat sf2 = new StringFormat(StringFormat.GenericTypographic))
                 {
                     sf2.FormatFlags |= StringFormatFlags.NoWrap | StringFormatFlags.NoClip | StringFormatFlags.MeasureTrailingSpaces;
@@ -538,6 +576,14 @@ internal static class LabelRender
         finally { ClosePrinter(hPrinter); }
     }
 
+    /// <summary>发一次测纸（自动校准）指令：独立 RAW 作业，打印机走纸 1~4 张定位到标签起点</summary>
+    internal static void CalibrateMedia(string printerName, string cmd)
+    {
+        if (string.IsNullOrEmpty(printerName)) throw new InvalidOperationException("未配置打印机名");
+        if (string.IsNullOrEmpty(cmd)) cmd = DEFAULT_CALIBRATE_CMD;
+        SendRawToPrinter(printerName, Encoding.ASCII.GetBytes(cmd));
+    }
+
     // ===== JSON 读取辅助 =====
 
     private static string Str(IDictionary<string, object> d, string k, string def)
@@ -631,18 +677,27 @@ internal static class LabelRender
         string printerName = Str(root, "printerName", null);
         string prnOut = Str(root, "prnOut", null);
         string previewOut = Str(root, "previewOut", null);
+        bool calibrate = Bool(root, "calibrate", false);
         IDictionary<string, object> cfg = Obj(root, "label");
         int dpi = Int(cfg, "dpi", FALLBACK_DPI);
         double widthMm = Dbl(cfg, "widthMm", 70);
         double heightMm = Dbl(cfg, "heightMm", 40);
         double gapMm = Dbl(cfg, "gapMm", LABEL_GAP_MM);
         int gapDots = Math.Max(0, Dots(gapMm, dpi));
+        string calibrateCmd = Str(cfg, "calibrateCmd", DEFAULT_CALIBRATE_CMD);
 
         object rawLabels;
         if (!root.TryGetValue("labels", out rawLabels) || rawLabels == null)
             throw new InvalidOperationException("缺少 labels");
         object[] labels = rawLabels as object[];
         if (labels == null || labels.Length == 0) throw new InvalidOperationException("labels 为空");
+
+        // 首张打印前先测纸：用独立 RAW 作业发校准指令，让打印机走纸到标签起点
+        // 单独成作业是为了避免 xa 与位图数据混在一起，异常时污染标签内容
+        if (calibrate && !string.IsNullOrEmpty(printerName))
+        {
+            CalibrateMedia(printerName, calibrateCmd);
+        }
 
         int printed = 0;
         foreach (object item in labels)

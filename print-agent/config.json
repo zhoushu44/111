@@ -6,7 +6,7 @@
     "port": 9100,
     "printerName": "Argox CP-2140M PPLB",
     "rawTool": "tools/rawprint.exe",
-    "label": { "widthMm": 70, "heightMm": 40, "dpi": 203, "gapMm": 2, "xOffsetMm": 16 }
+    "label": { "widthMm": 70, "heightMm": 40, "dpi": 203, "gapMm": 2, "xOffsetMm": 16, "calibrateCmd": "xa\n" }
   },
   "scanner": {
     "enabled": false,

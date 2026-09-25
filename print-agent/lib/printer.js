@@ -6,6 +6,12 @@ const os = require('os')
 const { execFile } = require('child_process')
 const { buildZpl, buildPplbRaster } = require('./zpl')
 
+// PPLB 测纸（自动校准）指令：xa 会让打印机走纸 1~4 张找到标签缝隙，把原点对到标签起点。
+// 首张打印前发一次即可，之后沿用定位，避免每张都空走浪费标签。
+const DEFAULT_CALIBRATE_CMD = 'xa\n'
+// 代理启动后是否还需在打印前测纸；首次打印成功后置 false，换纸时可在界面点「校准」重置。
+let needCalibrate = true
+
 /**
  * Windows RAW 直发：把原始指令以 RAW 数据类型直接写入打印队列。
  * 关键点——完全绕过打印机驱动的渲染，因此驱动里的纸张/缩放/份数设置
@@ -86,6 +92,8 @@ function printLabelJob(printer, labels) {
     const tmp = path.join(os.tmpdir(), `mq-label-job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`)
     const job = {
       printerName: name,
+      // 首张打印前测纸：让打印机先走纸到标签起点再打印，解决初始打印位置偏移
+      calibrate: needCalibrate,
       label: printer.label || { widthMm: 70, heightMm: 40, dpi: 203, gapMm: 2, xOffsetMm: 16 },
       labels,
     }
@@ -94,9 +102,23 @@ function printLabelJob(printer, labels) {
       execFile(tool, [tmp], { windowsHide: true, maxBuffer: 10 * 1024 * 1024 }, (e, stdout, stderr) => {
         fs.unlink(tmp, () => {})
         if (e) return reject(new Error('标签打印失败: ' + (stderr || e.message)))
+        needCalibrate = false
         try { resolve(JSON.parse(stdout)) } catch (_) { resolve({ ok: true, printed: labels.length }) }
       })
     })
+  })
+}
+
+/**
+ * 手动测纸：发一次 xa 指令让打印机走纸对齐标签起点。
+ * 换纸/换卷后在界面点一次即可；成功后同样清除「首张需测纸」标志。
+ * @param {object} printer
+ */
+function calibratePrinter(printer) {
+  const cmd = (printer.label && printer.label.calibrateCmd) || DEFAULT_CALIBRATE_CMD
+  return sendRaw(printer, Buffer.from(cmd, 'ascii')).then((r) => {
+    needCalibrate = false
+    return r
   })
 }
 
@@ -111,4 +133,4 @@ async function printLabel(printer, label) {
   return sendRaw(printer, Buffer.from(zpl, 'utf8'))
 }
 
-module.exports = { printLabel, printLabelJob, printRaster, sendRaw, printTcpRaw, printWindowsRaw, buildZpl, buildPplbRaster }
+module.exports = { printLabel, printLabelJob, printRaster, sendRaw, printTcpRaw, printWindowsRaw, calibratePrinter, buildZpl, buildPplbRaster }

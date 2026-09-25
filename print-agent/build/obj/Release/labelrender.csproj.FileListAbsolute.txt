@@ -1,0 +1,6 @@
+C:\Users\zhou\Desktop\1115\print-agent\build\bin\Release\labelrender.exe.config
+C:\Users\zhou\Desktop\1115\print-agent\build\bin\Release\labelrender.exe
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\labelrender.csproj.AssemblyReference.cache
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\labelrender.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\labelrender.csproj.CoreCompileInputs.cache
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\labelrender.exe

@@ -1,0 +1,6 @@
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\MQPrintAgent.csproj.AssemblyReference.cache
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\MQPrintAgent.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\MQPrintAgent.csproj.CoreCompileInputs.cache
+C:\Users\zhou\Desktop\1115\print-agent\build\bin\Release\MQPrintAgent.exe.config
+C:\Users\zhou\Desktop\1115\print-agent\build\bin\Release\MQPrintAgent.exe
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\MQPrintAgent.exe

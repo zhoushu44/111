@@ -1,0 +1,6 @@
+C:\Users\zhou\Desktop\1115\print-agent\build\bin\Release\rawprint.exe.config
+C:\Users\zhou\Desktop\1115\print-agent\build\bin\Release\rawprint.exe
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\rawprint.csproj.AssemblyReference.cache
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\rawprint.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\rawprint.csproj.CoreCompileInputs.cache
+C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\rawprint.exe

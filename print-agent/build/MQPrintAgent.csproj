@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  共同编译设置（net35 / CLR2，见 Directory.Build.props）：
+  目标 .NET Framework 3.5，使 exe 可在 Windows XP / 7 / 10 / 11 上运行。
+  参考程序集由 NuGet 包 Microsoft.NETFramework.ReferenceAssemblies 提供，
+  因此本机无需安装 .NET 3.5 目标包；只需 .NET SDK（dotnet 命令）。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net35</TargetFramework>
+    <AssemblyName>MQPrintAgent</AssemblyName>
+    <StartupObject>MQPrintAgent</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\tools\Agent.cs" />
+    <Compile Include="..\tools\LabelRender.cs" />
+    <Compile Include="..\tools\qrcoder\QRCodeGenerator.cs" />
+    <Compile Include="..\tools\qrcoder\QRCodeData.cs" />
+    <Compile Include="..\tools\qrcoder\Exceptions\DataTooLongException.cs" />
+    <Compile Include="..\tools\qrcoder\Framework4.0Methods\Stream4Methods.cs" />
+  </ItemGroup>
+
+</Project>

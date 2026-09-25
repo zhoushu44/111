@@ -2,7 +2,7 @@
 const http = require('http')
 const fs = require('fs')
 const path = require('path')
-const { printLabel, printLabelJob, printRaster } = require('./lib/printer')
+const { printLabel, printLabelJob, printRaster, calibratePrinter } = require('./lib/printer')
 const { startScanner } = require('./lib/scanner')
 
 const CONFIG_PATH = path.join(__dirname, 'config.json')
@@ -85,6 +85,12 @@ const server = http.createServer(async (req, res) => {
       if (!labels.length) return sendJson(res, 400, { ok: false, error: '缺少 labels' })
       const result = await printLabelJob(config.printer, labels)
       return sendJson(res, 200, { ok: true, printed: result.printed != null ? result.printed : labels.length })
+    }
+
+    // —— 测纸校准：发一次 xa 让打印机走纸到标签起点（换纸后点一次） ——
+    if (req.method === 'POST' && url.pathname === '/api/print/calibrate') {
+      await calibratePrinter(config.printer)
+      return sendJson(res, 200, { ok: true, calibrated: true })
     }
 
     // —— 自检：打印一张内置测试位图，验证「网页 → 本机代理 → 打印机」全链路 ——

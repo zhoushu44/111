@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 共同编译设置（net35 / CLR2，见 Directory.Build.props） -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net35</TargetFramework>
+    <AssemblyName>rawprint</AssemblyName>
+    <StartupObject>RawPrint</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\tools\RawPrint.cs" />
+  </ItemGroup>
+
+</Project>

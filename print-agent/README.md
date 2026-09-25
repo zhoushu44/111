@@ -14,17 +14,44 @@
 
 ## 运行（推荐：免安装单文件 exe）
 
-直接把 `tools/MQPrintAgent.exe` 拷到任意电脑，**双击即用**：
+把 `tools/MQPrintAgent.exe` 与同名的 `MQPrintAgent.exe.config` **两个文件一起**拷到目标电脑，双击 exe 即用。
 
-- 无需安装 Node.js、无需任何运行库（只用 Windows 自带的 .NET Framework，Win10/11 默认存在）
+### 系统兼容性（XP / 7 / 10 / 11）
+
+exe 目标框架为 **.NET Framework 3.5（CLR 2.0）**，四代系统均可运行：
+
+| 系统 | 运行前提 |
+|---|---|
+| Windows XP | 需装一次 .NET Framework 3.5 离线安装包（`dotnetfx35.exe`） |
+| Windows 7 | 系统自带 .NET 3.5.1，**免安装** |
+| Windows 10 / 11 | 系统自带 .NET 4.x，由 `exe.config` 的 `supportedRuntime` 兼容加载，**免安装** |
+
+> `MQPrintAgent.exe.config` 必须与 exe 放在同一目录，它声明了 CLR 版本回退规则；
+> 缺失时 Win10/11 会弹「若要运行此应用程序，必须先安装 .NET Framework v4.0.30319」。
+> 分发时请两个文件一起拷贝（`labelrender.exe` / `rawprint.exe` 同理，各带自己的 `.exe.config`）。
+
+- 无需安装 Node.js 或其它运行库
 - 启动后常驻右下角托盘，自动监听 `http://localhost:8790`
 - 默认开机自启（托盘菜单可关），开机后网页即可直接打印
 - 全部打印参数固定在 exe 内：打印机 `Argox CP-2140M PPLB`、标签 `70×40mm @203dpi`
 - 打印走 **winspool RAW 直发**，绕过驱动渲染，**所有电脑输出完全一致**
 
-托盘菜单：打开状态页 / 打印测试标签 / 开机自动启动（勾选开关）/ 退出。
+托盘菜单：打开状态页 / 打印测试标签 / 校准标签定位 / 开机自动启动（勾选开关）/ 退出。
 
-分发方式：拷贝 `MQPrintAgent.exe` 一个文件到各电脑 → 双击 → 完成。可选在同目录放 `config.json` 覆盖默认参数：
+### 重新编译
+
+源码在 `tools/`（`Agent.cs` / `LabelRender.cs` / `RawPrint.cs` / `qrcoder/`），构建脚本在 `build/`：
+
+```powershell
+cd print-agent\build
+.\build.ps1     # 依次编译 3 个 exe，并把 exe 与 exe.config 复制到 ..\tools\
+```
+
+构建使用 .NET SDK + NuGet 参考程序集（`Microsoft.NETFramework.ReferenceAssemblies`），**开发机无需安装 .NET 3.5 目标包**。
+
+### 可选配置
+
+在同目录放 `config.json` 可覆盖默认参数：
 
 ```json
 { "port": 8790, "printerName": "Argox CP-2140M PPLB", "label": { "widthMm": 70, "heightMm": 40, "dpi": 203 } }
@@ -55,6 +82,7 @@ node server.js
 - `GET  /`                      仪表盘（配置 + 测试 + ZPL 预览）
 - `GET  /api/status`            代理状态（打印机/扫描器）
 - `POST /api/print/label`       body `{ labels:[{ qrValue, data:{itemNo,name,...} }] }` → 逐张打印
+- `POST /api/print/calibrate`   让打印机测纸，重新定位每张标签的原点
 - `POST /api/config`            保存配置（printer / scanner）
 - `GET  /api/scanner/stream`    SSE，推送串口扫描到的条码
 - `GET  /api/zpl/preview`       `?itemNo=` 返回 ZPL 文本（调试用）

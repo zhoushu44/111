@@ -1,7 +1,10 @@
 // 敏群商贸 ERP 本地打印代理 —— 免安装单文件 exe
 //
-// 双击即用：内置 HTTP 服务 + 标签打印引擎，无需安装 Node.js 或任何运行库
-//（仅依赖 Windows 自带的 .NET Framework，Win10/11 默认存在）。
+// 双击即用：内置 HTTP 服务 + 标签打印引擎，无需安装 Node.js 或任何额外运行库。
+// 目标框架 .NET Framework 3.5（CLR2），兼容 Windows XP / 7 / 10 / 11：
+//   - XP   ：需装一次 .NET Framework 3.5 离线包
+//   - Win7 ：系统自带 3.5.1，免安装
+//   - Win10/11：系统自带 .NET 4.x，由 exe.config 的 supportedRuntime 兼容加载，免安装
 //
 // 链路：网页(localhost:8790) → 本 exe → winspool RAW 直发 → Argox 标签打印机
 // 版式、纸张、字体全部固定在 exe 内，不读驱动/系统打印设置，所有电脑输出一致。
@@ -14,7 +17,6 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -32,18 +34,18 @@ internal static class MQPrintAgent
     private static int _dpi = 203;
     private static double _gapMm = 2;     // 标签间隙，成卷间隙纸必须填实际缝隙宽度
     private static double _xOffsetMm = 16; // 横向偏移补偿：居中装 70mm 标签时打印头左基准偏左 16mm
+    // 测纸指令：PPLB 的 xa = 自动校准，走纸 1~4 张把原点对到标签起点
+    private static string _calibrateCmd = "xa\n";
+    // 代理启动后首次打印前先测纸一次，之后沿用定位；成功后置 false，换纸可在托盘/状态页重新校准
+    private static bool _needCalibrate = true;
 
-    private static TcpListener _listener;
+    private static readonly List<TcpListener> _listeners = new List<TcpListener>();
     private static NotifyIcon _tray;
     private static string _dir, _logPath, _prefPath;
 
     [STAThread]
     private static void Main()
     {
-        // 单文件打包：QRCoder 以嵌入资源形式随 exe 分发，运行时从资源解析加载
-        AppDomain.CurrentDomain.AssemblyResolve += ResolveQrcoder;
-        PreloadQrcoder();
-
         bool createdNew;
         using (Mutex mutex = new Mutex(true, APP_NAME, out createdNew))
         {
@@ -59,25 +61,16 @@ internal static class MQPrintAgent
             _prefPath = Path.Combine(_dir, "autostart.pref");
             LoadConfig();
 
-            try
+            // 双栈监听：.NET 3.5 无 DualMode，改为在 IPv4 与 IPv6 上各起一个监听
+            // 先绑 IPv4（XP/7/10/11 均可用），再尽力绑 IPv6；IPv6 被禁用时忽略即可
+            int bound = 0;
+            if (TryListen(IPAddress.Any)) bound++;
+            if (TryListen(IPAddress.IPv6Any)) bound++;
+            if (bound == 0)
             {
-                _listener = new TcpListener(IPAddress.IPv6Any, _port);
-                _listener.Server.DualMode = true;
-                _listener.Start();
-            }
-            catch
-            {
-                try
-                {
-                    _listener = new TcpListener(IPAddress.Loopback, _port);
-                    _listener.Start();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("端口 " + _port + " 无法监听：" + ex.Message, "敏群打印代理",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
+                MessageBox.Show("端口 " + _port + " 无法监听（可能已被其它程序占用）。", "敏群打印代理",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
 
             ApplyAutoStartPref();
@@ -85,8 +78,37 @@ internal static class MQPrintAgent
             SetupTray();
             Log("已启动 端口=" + _port + " 打印机=" + _printerName + " 标签=" + _widthMm + "x" + _heightMm + "mm@" + _dpi + "dpi");
             Application.Run();
-            _listener.Stop();
+            StopListeners();
         }
+    }
+
+    /// <summary>在指定地址上尝试监听，失败返回 false（不中断启动）</summary>
+    private static bool TryListen(IPAddress address)
+    {
+        TcpListener listener = null;
+        try
+        {
+            listener = new TcpListener(address, _port);
+            listener.Start();
+            _listeners.Add(listener);
+            Log("监听 " + address + ":" + _port);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            if (listener != null) { try { listener.Stop(); } catch { } }
+            Log("监听 " + address + ":" + _port + " 失败：" + ex.Message);
+            return false;
+        }
+    }
+
+    private static void StopListeners()
+    {
+        foreach (TcpListener listener in _listeners)
+        {
+            try { listener.Stop(); } catch { }
+        }
+        _listeners.Clear();
     }
 
     // ===== 配置 =====
@@ -111,6 +133,7 @@ internal static class MQPrintAgent
             if (lb.ContainsKey("dpi")) _dpi = ToInt(lb["dpi"], _dpi);
             if (lb.ContainsKey("gapMm")) _gapMm = ToDbl(lb["gapMm"], _gapMm);
             if (lb.ContainsKey("xOffsetMm")) _xOffsetMm = ToDbl(lb["xOffsetMm"], _xOffsetMm);
+            if (lb.ContainsKey("calibrateCmd")) _calibrateCmd = Convert.ToString(lb["calibrateCmd"]);
         }
         catch (Exception ex) { Log("读取 config.json 失败: " + ex.Message); }
     }
@@ -182,6 +205,7 @@ internal static class MQPrintAgent
         ContextMenuStrip menu = new ContextMenuStrip();
         menu.Items.Add("打开状态页", null, delegate { OpenStatusPage(); });
         menu.Items.Add("打印测试标签", null, delegate { PrintTestLabel(); });
+        menu.Items.Add("校准标签定位", null, delegate { CalibrateLabel(); });
         menu.Items.Add(new ToolStripSeparator());
         ToolStripMenuItem auto = new ToolStripMenuItem("开机自动启动");
         auto.Checked = IsAutoStart();
@@ -238,6 +262,7 @@ internal static class MQPrintAgent
         try
         {
             LabelRender.ExecuteJobText(BuildJob(json));
+            _needCalibrate = false;
             _tray.ShowBalloonTip(3000, "敏群打印代理", "测试标签已发送到打印机", ToolTipIcon.Info);
         }
         catch (Exception ex)
@@ -247,22 +272,43 @@ internal static class MQPrintAgent
         }
     }
 
+    /// <summary>手动测纸：发一次校准指令让打印机走纸对齐标签起点（换纸/换卷后使用）</summary>
+    private static void CalibrateLabel()
+    {
+        try
+        {
+            LabelRender.CalibrateMedia(_printerName, _calibrateCmd);
+            _needCalibrate = false;
+            _tray.ShowBalloonTip(3000, "敏群打印代理", "已发送测纸指令，打印机会走纸对齐标签起点", ToolTipIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            Log("测纸失败: " + ex.Message);
+            MessageBox.Show("测纸失败：" + ex.Message, "敏群打印代理", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
     // ===== HTTP 服务 =====
 
     private static void StartAcceptLoop()
     {
-        Thread t = new Thread(delegate ()
+        // 每个监听地址（IPv4 / IPv6）各起一个接受线程
+        foreach (TcpListener bound in _listeners)
         {
-            while (true)
+            TcpListener listener = bound;
+            Thread t = new Thread(delegate ()
             {
-                TcpClient client;
-                try { client = _listener.AcceptTcpClient(); }
-                catch { break; }
-                ThreadPool.QueueUserWorkItem(delegate (object o) { HandleClient((TcpClient)o); }, client);
-            }
-        });
-        t.IsBackground = true;
-        t.Start();
+                while (true)
+                {
+                    TcpClient client;
+                    try { client = listener.AcceptTcpClient(); }
+                    catch { break; }
+                    ThreadPool.QueueUserWorkItem(delegate (object o) { HandleClient((TcpClient)o); }, client);
+                }
+            });
+            t.IsBackground = true;
+            t.Start();
+        }
     }
 
     private static void HandleClient(TcpClient client)
@@ -340,10 +386,29 @@ internal static class MQPrintAgent
                     try
                     {
                         result = LabelRender.ExecuteJobText(BuildJob(bodyText));
+                        _needCalibrate = false;
                     }
                     catch (Exception ex)
                     {
                         Log("打印失败: " + ex.Message);
+                        code = 502;
+                        result = "{\"ok\":false,\"error\":" + Quote(ex.Message) + "}";
+                    }
+                    WriteResponse(ns, code, "application/json; charset=utf-8", result, origin);
+                }
+                else if (method == "POST" && route == "/api/print/calibrate")
+                {
+                    string result;
+                    int code = 200;
+                    try
+                    {
+                        LabelRender.CalibrateMedia(_printerName, _calibrateCmd);
+                        _needCalibrate = false;
+                        result = "{\"ok\":true,\"calibrated\":true}";
+                    }
+                    catch (Exception ex)
+                    {
+                        Log("测纸失败: " + ex.Message);
                         code = 502;
                         result = "{\"ok\":false,\"error\":" + Quote(ex.Message) + "}";
                     }
@@ -384,12 +449,15 @@ internal static class MQPrintAgent
         IDictionary<string, object> job = ser.Deserialize<IDictionary<string, object>>(bodyText);
         if (job == null) throw new InvalidOperationException("请求体不是合法 JSON");
         job["printerName"] = _printerName;
+        // 首张打印前先测纸，让打印机走纸到标签起点再打印（之后沿用定位）
+        job["calibrate"] = _needCalibrate;
         Dictionary<string, object> label = new Dictionary<string, object>();
         label["widthMm"] = _widthMm;
         label["heightMm"] = _heightMm;
         label["dpi"] = _dpi;
         label["gapMm"] = _gapMm;
         label["xOffsetMm"] = _xOffsetMm;
+        label["calibrateCmd"] = _calibrateCmd;
         job["label"] = label;
         return ser.Serialize(job);
     }
@@ -407,7 +475,7 @@ internal static class MQPrintAgent
 
     private static string StatusPage()
     {
-        string printer = WebUtility.HtmlEncode(_printerName);
+        string printer = HtmlEncode(_printerName);
         return "<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\">" +
                "<title>敏群打印代理</title><style>" +
                "body{font-family:'Microsoft YaHei',sans-serif;background:#f6f8fa;margin:0;padding:40px;color:#0f172a}" +
@@ -487,53 +555,24 @@ internal static class MQPrintAgent
         return sb.Append('"').ToString();
     }
 
-    /// <summary>从嵌入资源加载 QRCoder（程序集简单名为 qrcoder，需忽略大小写比较）</summary>
-    private static Assembly ResolveQrcoder(object sender, ResolveEventArgs args)
+    /// <summary>最小 HTML 转义（.NET 3.5 无 WebUtility.HtmlEncode）</summary>
+    private static string HtmlEncode(string s)
     {
-        try
+        if (string.IsNullOrEmpty(s)) return "";
+        StringBuilder sb = new StringBuilder(s.Length);
+        foreach (char c in s)
         {
-            string simple = new AssemblyName(args.Name).Name;
-            if (!string.Equals(simple, "qrcoder", StringComparison.OrdinalIgnoreCase)) return null;
-            Assembly self = Assembly.GetExecutingAssembly();
-            foreach (string res in self.GetManifestResourceNames())
+            switch (c)
             {
-                if (!res.EndsWith("QRCoder.dll", StringComparison.OrdinalIgnoreCase)) continue;
-                using (Stream s = self.GetManifestResourceStream(res))
-                {
-                    if (s == null) continue;
-                    byte[] buf = new byte[s.Length];
-                    int read = 0;
-                    while (read < buf.Length)
-                    {
-                        int n = s.Read(buf, read, buf.Length - read);
-                        if (n <= 0) break;
-                        read += n;
-                    }
-                    Log("已从嵌入资源加载 QRCoder：" + res);
-                    return Assembly.Load(buf);
-                }
+                case '&': sb.Append("&amp;"); break;
+                case '<': sb.Append("&lt;"); break;
+                case '>': sb.Append("&gt;"); break;
+                case '"': sb.Append("&quot;"); break;
+                case '\'': sb.Append("&#39;"); break;
+                default: sb.Append(c); break;
             }
-            Log("嵌入资源中未找到 QRCoder.dll");
         }
-        catch (Exception ex)
-        {
-            Log("加载 QRCoder 失败：" + ex.Message);
-        }
-        return null;
-    }
-
-    /// <summary>启动时预加载 QRCoder，避免首次打印时才解析导致失败</summary>
-    private static void PreloadQrcoder()
-    {
-        try
-        {
-            AssemblyName name = new AssemblyName("qrcoder");
-            Assembly.Load(name);
-        }
-        catch
-        {
-            // 预加载失败不致命：真正用到时 AssemblyResolve 会再次尝试
-        }
+        return sb.ToString();
     }
 
     private static void Log(string msg)

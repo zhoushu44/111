@@ -48,9 +48,10 @@
     <div class="row">
       <button onclick="save()">保存配置</button>
       <button class="ghost" onclick="testPrint()">测试打印</button>
+      <button class="ghost" onclick="calibrate()">校准打印机</button>
       <span id="saveMsg" class="status"></span>
     </div>
-    <p class="muted">raw 模式：将 ZPL 指令通过 TCP 直发打印机（Zebra / TSC / Argox-ZPL仿真），最贴近老系统。system 模式：写临时文件经 Windows 打印（建议打印机端口设为 Generic / Text Only）。</p>
+    <p class="muted">raw 模式：将 ZPL 指令通过 TCP 直发打印机（Zebra / TSC / Argox-ZPL仿真），最贴近老系统。system 模式：写临时文件经 Windows 打印（建议打印机端口设为 Generic / Text Only）。首张打印会自动测纸定位；换纸后点「校准打印机」重新对齐标签起点。</p>
   </div>
 
   <div class="card">
@@ -129,6 +130,10 @@ async function preview() {
   const itemNo = document.getElementById('pv').value || 'TEST-001'
   const r = await fetch('/api/zpl/preview?itemNo=' + encodeURIComponent(itemNo))
   document.getElementById('zplOut').textContent = await r.text()
+}
+async function calibrate() {
+  const r = await api('/api/print/calibrate', { method: 'POST', body: '{}' })
+  document.getElementById('saveMsg').textContent = r.ok ? '已发送测纸指令，打印机会走纸对齐标签起点' : '测纸失败'
 }
 load()
 </script>
