@@ -762,6 +762,9 @@ internal static class MQPrintAgent
         sb.Append("Access-Control-Allow-Origin: ").Append(string.IsNullOrEmpty(origin) ? "*" : origin).Append("\r\n");
         sb.Append("Access-Control-Allow-Methods: GET,POST,OPTIONS\r\n");
         sb.Append("Access-Control-Allow-Headers: Content-Type\r\n");
+        // 部署在服务器上的 ERP 网页访问本代理属于「本地网络访问（PNA/LNA）」，
+        // Chrome/Edge 的预检要求该响应头，缺失时请求被拦截（表现为点了打印没反应）。
+        sb.Append("Access-Control-Allow-Private-Network: true\r\n");
         sb.Append("Vary: Origin\r\n");
         sb.Append("Cache-Control: no-store\r\n");
         sb.Append("Connection: close\r\n\r\n");
@@ -781,6 +784,7 @@ internal static class MQPrintAgent
         sb.Append("Access-Control-Allow-Origin: ").Append(string.IsNullOrEmpty(origin) ? "*" : origin).Append("\r\n");
         sb.Append("Access-Control-Allow-Methods: GET,POST,OPTIONS\r\n");
         sb.Append("Access-Control-Allow-Headers: Content-Type\r\n");
+        sb.Append("Access-Control-Allow-Private-Network: true\r\n");
         sb.Append("Vary: Origin\r\n");
         sb.Append("Cache-Control: no-store\r\n");
         sb.Append("Connection: close\r\n\r\n");

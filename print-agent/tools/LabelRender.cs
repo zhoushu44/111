@@ -41,6 +41,8 @@ internal static class LabelRender
     // 测纸（自动校准）指令：PPLB 的 xa = Auto Calibration，会走纸 1~4 张找到标签缝隙
     // 首张打印前先发一次，打印机才会把原点对到标签起点，否则从当前纸位直接开印导致内容偏移/被切
     private const string DEFAULT_CALIBRATE_CMD = "xa\n";
+    // 打印热度/浓度（PPLB 的 D 指令，0~15）。原版 HSTIP 样本文件用的是 D11，这里取同值。
+    private const int DEFAULT_DARKNESS = 11;
 
     // 缩字号档位：从原字号逐档缩小，取第一个能整体放下的
     private static readonly double[] SCALES = { 1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6 };
@@ -396,6 +398,21 @@ internal static class LabelRender
         return new RenderResult { WidthDots = W, HeightDots = H, Raster = raster };
     }
 
+    /// <summary>
+    /// 按原版 HSTIP 的图形尺寸（264×299 点 @203dpi ≈ 33×37.4mm）渲染 PPLA 位图，
+    /// 极性为 PPLA 的「1 = 黑」。版式复用 RenderLabel，仅把画布换成原版尺寸并翻转极性。
+    /// </summary>
+    private static byte[] RenderPplaRaster(int dpi, string header, string itemNo, string[] keys, string[] values, bool withHeader, string qrValue)
+    {
+        double widthMm = PPLA_IMAGE_WIDTH_DOTS * MM / dpi;   // 264 点 → 33.03mm
+        double heightMm = PPLA_IMAGE_HEIGHT_DOTS * MM / dpi; // 299 点 → 37.41mm
+        RenderResult tmp = RenderLabel(dpi, widthMm, heightMm, header, itemNo, keys, values, withHeader, qrValue, null);
+        byte[] raster = new byte[tmp.Raster.Length];
+        // PPLB(GW) 是 1=白，PPLA 是 1=黑，逐位取反
+        for (int i = 0; i < raster.Length; i++) raster[i] = (byte)~tmp.Raster[i];
+        return raster;
+    }
+
     /// <summary>把 24bpp 位图转成 PPLB GW 的 1-bit 光栅（行优先、每行 8 点对齐、1 = 白 0 = 黑）</summary>
     private static byte[] Rasterize(Bitmap bmp, int W, int H, out int bpr)
     {
@@ -493,22 +510,117 @@ internal static class LabelRender
         return new RenderResult { WidthDots = W, HeightDots = H, Raster = raster };
     }
 
-    /// <summary>包成 PPLB 指令：N 清缓冲 / q 宽 / Q 高+gap / R 原点 / GW 位图 / P 份数</summary>
-    private static byte[] BuildPplb(byte[] raster, int widthDots, int heightDots, int copies, int gapDots)
+    /// <summary>包成 PPLB 指令：N 清缓冲 / D 浓度 / Z 方向 / q 宽 / Q 高+gap / R 原点 / GW 位图 / P 份数</summary>
+    private static byte[] BuildPplb(byte[] raster, int widthDots, int heightDots, int copies, int gapDots, int darkness)
     {
         int bpr = widthDots / 8;
         int n = Math.Max(1, Math.Min(100, copies));
+        int heat = Math.Max(0, Math.Min(15, darkness));
         // Q 的第二个参数是标签间隙（dots），间隙纸必须填实际值，否则走纸定位会漂移
-        // D1 显式固定打印方向为正向，不依赖打印机默认值（新电脑默认方向不同会导致旋转/翻转）
+        // ★D 是「打印热度/浓度」（0~15），不是方向：原代码写 D1 = 最低浓度，会打出来几乎全白，
+        //   且该值会存进打印机 EEPROM，导致之后任何软件打印都偏淡。原版 HSTIP 样本用 D11。
+        // Z 才是 Set Print Direction，这里显式固定为正向，不依赖打印机默认值。
         // GW 的 X 起点补偿打印机横向偏移（本机实测左侧被切 16mm = 128 dots）
         int xOffset = Math.Max(0, Dots(LABEL_X_OFFSET_MM, FALLBACK_DPI));
-        byte[] head = Encoding.ASCII.GetBytes("N\nD1\nq" + widthDots + "\nQ" + heightDots + "," + gapDots + "\nR0,0\nGW" + xOffset + ",0," + bpr + "," + heightDots + ",");
+        byte[] head = Encoding.ASCII.GetBytes("N\nD" + heat + "\nZ0\nq" + widthDots + "\nQ" + heightDots + "," + gapDots + "\nR0,0\nGW" + xOffset + ",0," + bpr + "," + heightDots + ",");
         byte[] foot = Encoding.ASCII.GetBytes("\nP" + n + "\n");
         using (MemoryStream ms = new MemoryStream())
         {
             ms.Write(head, 0, head.Length);
             ms.Write(raster, 0, raster.Length);
             ms.Write(foot, 0, foot.Length);
+            return ms.ToArray();
+        }
+    }
+
+    // ===== PPLA 输出通道（照抄原版 HSTIP 打印文件，用于打印机处于 PPLA 仿真的机型）=====
+    //
+    // 依据：原版 HSTIP_SHMQ 目录下的实际打印文件（9977 字节）逐字节解析结果，
+    // 帧结构为「STX(0x02) + 命令 + CR LF」，浓度命令用 SOH(0x01) 前缀：
+    //   02 'n'       ┐
+    //   02 'M宽'      │ 标签设置
+    //   02 'KW长'     │
+    //   02 'O偏移'    │
+    //   02 'V0'       │
+    //   02 'f303'    ┘
+    //   01 'D'         打印浓度开关
+    //   02 'ICPgfx0'   下载图形，命名 gfx0
+    //   05 01 01 00 00 00 00 01 02 0C 01 2C 01 2C 01 00 00 00 FF FF FF   ← 21 字节图形属性头
+    //   <裸 1-bit 位图，行优先、每行 8 点对齐、1=黑>
+    //   02 'L'  02 'D浓度'  02 'A2'
+    //   02 '1Y<行位置>gfx0'   在指定 Y 位置打印图形
+    //   02 'Q份数'  02 'E'  02 'xCGgfx0'
+    //
+    // 图形属性头实测常量（原版 264 点宽）：
+    //   05          = 图形块前导
+    //   01 01       = 版本/类型
+    //   00 00 00 00 = 保留
+    //   01 02       = 位深/类型标记（1-bit）
+    //   0C          = 12 = 数据格式标记
+    //   01 2C 01 2C = 300,300（组件内置画布尺寸，与原版一致）
+    //   01 00 00 00 = 保留
+    //   FF FF FF    = 调色板/掩码
+    private static readonly byte[] PplaImageHeader = new byte[]
+    {
+        0x05, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x0C,
+        0x01, 0x2C, 0x01, 0x2C, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF
+    };
+
+    // PPLA 纸面参数与图形尺寸：照抄原版 HSTIP 打印文件（500 点纸宽 / 267 点标签长 / 264×299 位图）
+    private const int PPLA_PAPER_WIDTH_DOTS = 500;
+    private const int PPLA_LABEL_LENGTH_DOTS = 267;
+    private const int PPLA_ORIGIN_Y_DOTS = 220;
+    private const int PPLA_IMAGE_WIDTH_DOTS = 264;
+    private const int PPLA_IMAGE_HEIGHT_DOTS = 299;
+
+    /// <summary>STX/SOH 帧：前缀字节 + 命令 + CR LF</summary>
+    private static void PplaCmd(MemoryStream ms, byte prefix, string cmd)
+    {
+        ms.WriteByte(prefix);
+        byte[] body = Encoding.ASCII.GetBytes(cmd);
+        ms.Write(body, 0, body.Length);
+        ms.WriteByte(13);
+        ms.WriteByte(10);
+    }
+
+    /// <summary>
+    /// 照抄原版生成 PPLA 打印流。
+    /// ★重要：PPLA 是「1 = 黑」，与 PPLB 的 GW 极性相反，调用方必须传黑点置位的位图。
+    /// ★纸面参数照抄原版：M0500(纸宽 500 点) / KW0267(标签长 267 点) / O0220(原点偏移 220)。
+    /// </summary>
+    private static byte[] BuildPpla(byte[] raster, int widthDots, int heightDots, int copies, int darkness, string itemNo)
+    {
+        int bpr = widthDots / 8;
+        int n = Math.Max(1, Math.Min(9999, copies));
+        int heat = Math.Max(0, Math.Min(15, darkness));
+
+        // 原版行位置 "1Y1100000170002"：前段 7 位=图形纵向起始行（1100000 对应 220 点），
+        // 末尾 2 位为图像序号（02=第 2 张）。这里按原版保持其结构，行位置给 0。
+        int rowPos = 0;
+        string imageRef = "1Y" + rowPos.ToString("D7") + "02gfx0";
+
+        using (MemoryStream ms = new MemoryStream())
+        {
+            PplaCmd(ms, 0x02, "n");
+            // 纸面参数固定照抄原版 HSTIP 的取值，不随位图尺寸变化
+            PplaCmd(ms, 0x02, "M" + PPLA_PAPER_WIDTH_DOTS.ToString("D4"));
+            PplaCmd(ms, 0x02, "KW" + PPLA_LABEL_LENGTH_DOTS.ToString("D4"));
+            PplaCmd(ms, 0x02, "O" + PPLA_ORIGIN_Y_DOTS.ToString("D4"));
+            PplaCmd(ms, 0x02, "V0");
+            PplaCmd(ms, 0x02, "f303");
+            PplaCmd(ms, 0x01, "D");
+            PplaCmd(ms, 0x02, "ICPgfx0");
+            ms.Write(PplaImageHeader, 0, PplaImageHeader.Length);
+            ms.Write(raster, 0, bpr * heightDots);
+            ms.WriteByte(13);
+            ms.WriteByte(10);
+            PplaCmd(ms, 0x02, "L");
+            PplaCmd(ms, 0x02, "D" + heat);
+            PplaCmd(ms, 0x02, "A2");
+            PplaCmd(ms, 0x02, imageRef);
+            PplaCmd(ms, 0x02, "Q" + n.ToString("D4"));
+            PplaCmd(ms, 0x02, "E");
+            PplaCmd(ms, 0x02, "xCGgfx0");
             return ms.ToArray();
         }
     }
@@ -685,6 +797,10 @@ internal static class LabelRender
         double heightMm = Dbl(cfg, "heightMm", 40);
         double gapMm = Dbl(cfg, "gapMm", LABEL_GAP_MM);
         int gapDots = Math.Max(0, Dots(gapMm, dpi));
+        // 打印热度/浓度（PPLB 的 D 指令），0~15；原版 HSTIP 样本用 11
+        int darkness = Int(cfg, "darkness", DEFAULT_DARKNESS);
+        // 指令语言：PPLA（原版 HSTIP 用的，默认）/ PPLB（EPL2 兼容）
+        string language = Str(cfg, "language", "PPLA").ToUpperInvariant();
         string calibrateCmd = Str(cfg, "calibrateCmd", DEFAULT_CALIBRATE_CMD);
 
         object rawLabels;
@@ -737,15 +853,25 @@ internal static class LabelRender
             string preview = previewOut != null && printed == 0 ? previewOut : null;
 
             RenderResult r = RenderLabel(dpi, widthMm, heightMm, header, itemNo, keys, values, withHeader, qrValue, preview);
-            byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, copies, gapDots);
+            byte[] payload;
+            if (language == "PPLB")
+            {
+                payload = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, copies, gapDots, darkness);
+            }
+            else
+            {
+                // PPLA 通道：位图尺寸与纸面参数照抄原版 HSTIP（264×299 点），极性 1=黑
+                byte[] pplaRaster = RenderPplaRaster(dpi, header, itemNo, keys, values, withHeader, qrValue);
+                payload = BuildPpla(pplaRaster, PPLA_IMAGE_WIDTH_DOTS, PPLA_IMAGE_HEIGHT_DOTS, copies, darkness, itemNo);
+            }
 
             if (!string.IsNullOrEmpty(prnOut))
             {
-                File.WriteAllBytes(prnOut, pplb);
+                File.WriteAllBytes(prnOut, payload);
             }
             if (!string.IsNullOrEmpty(printerName))
             {
-                SendRawToPrinter(printerName, pplb);
+                SendRawToPrinter(printerName, payload);
             }
             printed++;
         }
@@ -762,7 +888,7 @@ internal static class LabelRender
 
         RenderResult r = RenderCalib(FALLBACK_DPI, 70, 40, preview);
         // 标定标签必须和正式打印用同一个间隙值，否则测出来的偏移不代表真实情况
-        byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, 1, Math.Max(0, Dots(LABEL_GAP_MM, FALLBACK_DPI)));
+        byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, 1, Math.Max(0, Dots(LABEL_GAP_MM, FALLBACK_DPI)), DEFAULT_DARKNESS);
         File.WriteAllBytes(outPath, pplb);
         if (!string.IsNullOrEmpty(printerName))
         {
@@ -792,7 +918,7 @@ internal static class LabelRender
         };
 
         RenderResult r = RenderLabel(FALLBACK_DPI, 70, 40, DEFAULT_HEADER, itemNo, keys, values, true, itemNo, preview);
-        byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, 1, Math.Max(0, Dots(LABEL_GAP_MM, FALLBACK_DPI)));
+        byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, 1, Math.Max(0, Dots(LABEL_GAP_MM, FALLBACK_DPI)), DEFAULT_DARKNESS);
         File.WriteAllBytes(outPath, pplb);
         Console.WriteLine("OK " + outPath + " " + pplb.Length);
         if (!string.IsNullOrEmpty(printerName))
