@@ -43,3 +43,11 @@ _*
 # 本地 PostgreSQL 数据目录（开发调试用，不入库）
 .pg-local/
 .postgres-data/
+
+# .NET 构建产物（本地版 exe 源码 local-app、打印代理 print-agent/build）
+**/bin/
+**/obj/
+local-app/web/
+
+# 本地打包产物
+本地ERP版.7z

@@ -67,12 +67,16 @@ app.use(
 // HSTS 仅在 HTTPS 响应中生效，不影响 HTTP 访问，故保留。
 // img-src 需放开外链：面料图片已迁移到对象存储（腾讯 COS），url 为跨域绝对地址，
 // 而 helmet 默认 img-src 仅 'self' data:，会导致浏览器拒绝加载图片（全部裂图）。
+// connect-src 需放开本机打印代理：标签打印页直接 fetch http://localhost:8790 驱动本机
+// 标签打印机，helmet 默认 connect-src 回落到 default-src 'self'，会把该请求直接拦掉，
+// 表现为「打印代理未启动」、点打印必失败。
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
       'upgrade-insecure-requests': null,
       'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+      'connect-src': ["'self'", 'http://localhost:*', 'http://127.0.0.1:*'],
     },
   },
 }));
