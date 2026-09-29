@@ -1,0 +1,935 @@
+<?xml version="1.0" encoding="GB2312"?>
+<Root>
+	<DefaultStyle Description="默认风格">
+		<Editor Description="输入框">
+			<Normal Description="普通">
+				<Edit Description="编辑">
+					<Default Description="默认">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Import>
+				</Edit>
+				<Editting Description="正在编辑">
+					<Default Description="默认">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="$00F6E2E1"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="$00F9E2E1"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="$00F6E2E1"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Import>
+				</Editting>
+				<Browse Description="流览">
+					<Default Description="默认">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Import>
+				</Browse>
+				<ShowMessage Description="显示消息">
+					<Default Description="默认">
+						<BorderColor Value="clBtnText"/>
+						<BorderStyle Value="ebsUltraFlat"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="clBlack"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="clBtnText"/>
+						<BorderStyle Value="ebsUltraFlat"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="clInfoBk"/>
+						<FontColor Value="clBlue"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="clBtnText"/>
+						<BorderStyle Value="ebsUltraFlat"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="clInfoBk"/>
+						<FontColor Value="clBlue"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Import>
+				</ShowMessage>
+				<ReadOnly Description="只读">
+					<Default Description="默认">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="$00D6D6D6"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="$00D6D6D6"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bLeft,bTop,bRight,bBottom]"/>
+						<Color Value="$00D6D6D6"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Import>
+				</ReadOnly>
+				<NotNullLabel Description="不可为空">
+					<Default Description="默认">
+						<BorderColor Value="clSilver"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[]"/>
+						<Color Value="$00E05330"/>
+						<FontColor Value="$00C84828"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="clRed"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[]"/>
+						<Color Value="clBtnFace"/>
+						<FontColor Value="clBlack"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="clRed"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[]"/>
+						<Color Value="clBtnFace"/>
+						<FontColor Value="clBlack"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Import>
+				</NotNullLabel>
+				<NullLabel Description="可以为空">
+					<Default Description="默认">
+						<BorderColor Value="$00EDEDED"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="clWindowText"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clBtnFace"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="clWindowText"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clBtnFace"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Import>
+				</NullLabel>
+			</Normal>
+			<Report Description="报表">
+				<Edit Description="编辑">
+					<Default Description="默认">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Import>
+				</Edit>
+				<Editting Description="正在编辑">
+					<Default Description="默认">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="$00F6E2E1"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="$00F6E2E1"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="$00F6E2E1"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Import>
+				</Editting>
+				<Browse Description="流览">
+					<Default Description="默认">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="$00959595"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Import>
+				</Browse>
+				<ShowMessage Description="显示消息">
+					<Default Description="默认">
+						<BorderColor Value="clBlack"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="clBlack"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clBlue"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="clBlack"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clBlue"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Import>
+				</ShowMessage>
+				<ReadOnly Description="只读">
+					<Default Description="默认">
+						<BorderColor Value="clBtnText"/>
+						<BorderStyle Value="ebsUltraFlat"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="True"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="clBtnText"/>
+						<BorderStyle Value="ebsUltraFlat"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="True"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="clBtnText"/>
+						<BorderStyle Value="ebsUltraFlat"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="$FFFFFFFF"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="True"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtNone"/>
+					</Import>
+				</ReadOnly>
+				<NotNullLabel Description="不可为空">
+					<Default Description="默认">
+						<BorderColor Value="clWhite"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="$00E05330"/>
+						<FontColor Value="$00C84828"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="clYellow"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="$00E05330"/>
+						<FontColor Value="$00C84828"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="clRed"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="$00E05330"/>
+						<FontColor Value="$00C84828"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Import>
+				</NotNullLabel>
+				<NullLabel Description="可以为空">
+					<Default Description="默认">
+						<BorderColor Value="clWhite"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Default>
+					<Warning Description="警告">
+						<BorderColor Value="clWindowText"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Warning>
+					<Import Description="重要">
+						<BorderColor Value="clWindowText"/>
+						<BorderStyle Value="ebsSingle"/>
+						<Edges Value="[bBottom]"/>
+						<Color Value="clWhite"/>
+						<FontColor Value="clWindowText"/>
+						<FontName Value="宋体"/>
+						<FontSize Value="9"/>
+						<HotTrack Value="False"/>
+						<Shadow Value="False"/>
+						<ButtonTransparency Value="ebtHideUnselected"/>
+					</Import>
+				</NullLabel>
+			</Report>
+		</Editor>
+		<Grid Description="数据网格">
+			<Normal Description="普通">
+				<Background Description="背景">
+					<Color Value="clWhite"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Background>
+				<Content Description="网格">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Content>
+				<ContentEven Description="偶数行">
+					<Color Value="clWhite"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</ContentEven>
+				<ContentOdd Description="奇数行">
+					<Color Value="clWhite"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</ContentOdd>
+				<Inactive Description="非活动列">
+					<Color Value="clSkyBlue"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Inactive>
+				<IncSearch Description="查询">
+					<Color Value="$00FFF0E6"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</IncSearch>
+				<Selection Description="选择">
+					<Color Value="$00CE7B43"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Selection>
+				<CaptionRow Description="标题列">
+					<Color Value="$00F0F0F0"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</CaptionRow>
+				<CardBorder Description="卡片边界">
+					<Color Value="clBlack"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</CardBorder>
+				<RowCaption Description="列标题">
+					<Color Value="$20F4DFCC"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</RowCaption>
+				<FilterBox Description="过滤格">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</FilterBox>
+				<Footer Description="脚">
+					<Color Value="$00F9F0F1"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Footer>
+				<Group Description="组">
+					<Color Value="clWindow"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Group>
+				<GroupByBox Description="分组格">
+					<Color Value="$00F0F0F0"/>
+					<TextColor Value="clBlack"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</GroupByBox>
+				<Header Description="头">
+					<Color Value="$00F0F0F0"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Header>
+				<Indicator Description="指示器">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Indicator>
+				<NewItemRowInfoText Description="新建行">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</NewItemRowInfoText>
+				<Preview Description="预览">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Preview>
+				<BandBackground Description="Band背景">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</BandBackground>
+				<BandHeader Description="Band头">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</BandHeader>
+				<Tab Description="标签">
+					<Color Value="$00FBF2EA"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Tab>
+				<TabsBackground Description="标签背景">
+					<Color Value="$00FBF2EA"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</TabsBackground>
+				<NotNullHeader Description="不为空头">
+					<Color Value="clDefault"/>
+					<TextColor Value="$00B70000"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</NotNullHeader>
+			</Normal>
+			<Report Description="报表">
+				<Background Description="背景">
+					<Color Value="clWhite"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Background>
+				<Content Description="网格">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Content>
+				<ContentEven Description="偶数行">
+					<Color Value="clWhite"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</ContentEven>
+				<ContentOdd Description="奇数行">
+					<Color Value="clWhite"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</ContentOdd>
+				<Inactive Description="非活动列">
+					<Color Value="clWhite"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Inactive>
+				<IncSearch Description="查询">
+					<Color Value="clWhite"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</IncSearch>
+				<Selection Description="选择">
+					<Color Value="$00CE7B43"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Selection>
+				<CaptionRow Description="标题列">
+					<Color Value="$00F0F0F0"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</CaptionRow>
+				<CardBorder Description="卡片边界">
+					<Color Value="clBlack"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</CardBorder>
+				<RowCaption Description="列标题">
+					<Color Value="$20F4DFCC"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</RowCaption>
+				<FilterBox Description="过滤格">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</FilterBox>
+				<Footer Description="脚">
+					<Color Value="$00F9F0F1"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Footer>
+				<Group Description="组">
+					<Color Value="clWindow"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Group>
+				<GroupByBox Description="分组格">
+					<Color Value="$00F0F0F0"/>
+					<TextColor Value="clBlack"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</GroupByBox>
+				<Header Description="头">
+					<Color Value="$00F0F0F0"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Header>
+				<Indicator Description="指示器">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Indicator>
+				<NewItemRowInfoText Description="新建行">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</NewItemRowInfoText>
+				<Preview Description="预览">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Preview>
+				<BandBackground Description="Band背景">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</BandBackground>
+				<BandHeader Description="Band头">
+					<Color Value="clDefault"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</BandHeader>
+				<Tab Description="标签">
+					<Color Value="clWhite"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Tab>
+				<TabsBackground Description="标签背景">
+					<Color Value="clWhite"/>
+					<TextColor Value="clDefault"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</TabsBackground>
+				<NotNullHeader Description="不为空头">
+					<Color Value="clDefault"/>
+					<TextColor Value="$00B70000"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</NotNullHeader>
+			</Report>
+		</Grid>
+		<Button Description="按纽">
+			<Normal Description="普通">
+				<Default Description="默认">
+					<BHotTrack Value="False"/>
+					<BorderColor Value="clGray"/>
+					<ClickedFrom Value="$00C6CFD6"/>
+					<ClickedTo Value="$00EBF3F7"/>
+					<DropDownMark Value="clGray"/>
+					<DropDownMarkClicked Value="clGray"/>
+					<HotTrack Value="clBlue"/>
+					<TextColor Value="clDefault"/>
+					<TextColorClicked Value="clDefault"/>
+					<TextShadow Value="clWhite"/>
+					<DefaultFrom Value="clWhite"/>
+					<DefaultTo Value="$00D1BEAF"/>
+					<OverFrom Value="clWhite"/>
+					<OverTo Value="$00BE9476"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Default>
+			</Normal>
+			<Report Description="报表">
+				<Default Description="默认">
+					<BHotTrack Value="False"/>
+					<BorderColor Value="clGray"/>
+					<ClickedFrom Value="$00C6CFD6"/>
+					<ClickedTo Value="$00EBF3F7"/>
+					<DropDownMark Value="clGray"/>
+					<DropDownMarkClicked Value="clGray"/>
+					<HotTrack Value="clBlue"/>
+					<TextColor Value="clDefault"/>
+					<TextColorClicked Value="clDefault"/>
+					<TextShadow Value="clWhite"/>
+					<DefaultFrom Value="clWhite"/>
+					<DefaultTo Value="$00D1BEAF"/>
+					<OverFrom Value="clWhite"/>
+					<OverTo Value="$00BE9476"/>
+					<FontName Value="宋体"/>
+					<FontSize Value="9"/>
+				</Default>
+			</Report>
+		</Button>
+		<Splitter Description="分隔条">
+			<Normal Description="普通">
+				<Default Description="默认">
+					<Color Value="$00FFF9F4"/>
+					<HotZoneClassName Value="TcxXPTaskBarStyle"/>
+					<SizePercent Value="30"/>
+				</Default>
+			</Normal>
+			<Report Description="报表">
+				<Default Description="默认">
+					<Color Value="$00FFF9F4"/>
+					<HotZoneClassName Value="TcxXPTaskBarStyle"/>
+					<SizePercent Value="30"/>
+				</Default>
+			</Report>
+		</Splitter>
+		<Panel Description="面板">
+			<Normal Description="普通">
+				<Default Description="默认">
+					<Color Value="$00FBF2EA"/>
+					<FlatColor Value="$00FBF2EA"/>
+				</Default>
+				<Button Description="按纽">
+					<Color Value="$00FBF2EA"/>
+					<FlatColor Value="clSilver"/>
+				</Button>
+			</Normal>
+			<Report Description="报表">
+				<Default Description="默认">
+					<Color Value="clWhite"/>
+					<FlatColor Value="clBlack"/>
+				</Default>
+				<Button Description="按纽">
+					<Color Value="$00FBF2EA"/>
+					<FlatColor Value="clWhite"/>
+				</Button>
+			</Report>
+		</Panel>
+		<PageControl Description="分页控件">
+			<Normal Description="普通">
+				<Default Description="默认">
+					<BackgroundColor Value="$00FBF2EA"/>
+					<Color Value="16511722"/>
+					<FlatColor Value="$00959595"/>
+					<TabHighlightBar Value="$00FBF2EA"/>
+					<TabShadow Value="$00FBF2EA"/>
+					<TabUnselected Value="$00DCDEE0"/>
+					<TextDisabledHighlight Value="clGray"/>
+					<TextDisabledShadow Value="clSilver"/>
+					<TextSelected Value="clWindowFrame"/>
+					<TextUnselected Value="clGray"/>
+					<HotTrack Value="False"/></Default>
+			</Normal>
+			<Report Description="报表">
+				<Default Description="默认">
+					<BackgroundColor Value="clWhite"/>
+					<Color Value="16777215"/>
+					<FlatColor Value="$00959595"/>
+					<TabHighlightBar Value="clWhite"/>
+					<TabShadow Value="clBtnFace"/>
+					<TabUnselected Value="$00DCDEE0"/>
+					<TextDisabledHighlight Value="clGray"/>
+					<TextDisabledShadow Value="clSilver"/>
+					<TextSelected Value="clwindowFrame"/>
+					<TextUnselected Value="clGray"/>
+					<HotTrack Value="False"/></Default>
+			</Report>
+		</PageControl>
+	</DefaultStyle>
+</Root>
