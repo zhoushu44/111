@@ -208,8 +208,8 @@ function buildPplbRaster(raster, widthDots, heightDots, copies = 1, gapMm = 2, d
   const n = Math.max(1, Math.min(100, Number(copies) || 1))
   const gapDots = Math.max(0, Math.round((Number(gapMm) || 0) * Number(dpi) / 25.4))
   const xOffset = Math.max(0, Math.round((Number(xOffsetMm) || 0) * Number(dpi) / 25.4))
-  // q=标签宽(dot)，Q=标签高+间隙(dot)，R=原点，GW=直接写图形
-  const header = Buffer.from(`N\nq${W}\nQ${H},${gapDots}\nR0,0\nGW${xOffset},0,${bytesPerRow},${H},`, 'ascii')
+  // q=标签宽(dot)，Q=标签高+间隙(dot)，D1=显式固定打印方向正向，R=原点，GW=直接写图形
+  const header = Buffer.from(`N\nD1\nq${W}\nQ${H},${gapDots}\nR0,0\nGW${xOffset},0,${bytesPerRow},${H},`, 'ascii')
   const footer = Buffer.from(`\nP${n}\n`, 'ascii')
   return Buffer.concat([header, raster, footer])
 }

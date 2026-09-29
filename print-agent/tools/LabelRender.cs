@@ -499,9 +499,10 @@ internal static class LabelRender
         int bpr = widthDots / 8;
         int n = Math.Max(1, Math.Min(100, copies));
         // Q 的第二个参数是标签间隙（dots），间隙纸必须填实际值，否则走纸定位会漂移
+        // D1 显式固定打印方向为正向，不依赖打印机默认值（新电脑默认方向不同会导致旋转/翻转）
         // GW 的 X 起点补偿打印机横向偏移（本机实测左侧被切 16mm = 128 dots）
         int xOffset = Math.Max(0, Dots(LABEL_X_OFFSET_MM, FALLBACK_DPI));
-        byte[] head = Encoding.ASCII.GetBytes("N\nq" + widthDots + "\nQ" + heightDots + "," + gapDots + "\nR0,0\nGW" + xOffset + ",0," + bpr + "," + heightDots + ",");
+        byte[] head = Encoding.ASCII.GetBytes("N\nD1\nq" + widthDots + "\nQ" + heightDots + "," + gapDots + "\nR0,0\nGW" + xOffset + ",0," + bpr + "," + heightDots + ",");
         byte[] foot = Encoding.ASCII.GetBytes("\nP" + n + "\n");
         using (MemoryStream ms = new MemoryStream())
         {

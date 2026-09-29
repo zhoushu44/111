@@ -1,10 +1,10 @@
-# 编译打印代理（.NET Framework 3.5 / CLR2），产物可运行于 Windows XP / 7 / 10 / 11。
+# Build print agent (.NET Framework 4.8), runs on Win10 1803+ / Win11.
+# Win10/11 ships with .NET 4.8 runtime, no extra install needed, true single exe.
 #
-# 前置条件：任意较新的 .NET SDK（提供 dotnet 命令）。
-# 参考程序集由 NuGet 包 Microsoft.NETFramework.ReferenceAssemblies 自动还原，
-# 本机无需安装 .NET 3.5 目标包。
+# Prerequisite: any modern .NET SDK (provides dotnet command).
+# Reference assemblies via NuGet Microsoft.NETFramework.ReferenceAssemblies.
 #
-# 用法：在 powershell 中执行  .\build.ps1
+# Usage:  .\build.ps1
 $ErrorActionPreference = 'Stop'
 
 $buildDir = $PSScriptRoot
@@ -12,16 +12,20 @@ $toolsDir = Join-Path (Split-Path $buildDir -Parent) 'tools'
 $outDir   = Join-Path $buildDir 'bin\Release'
 
 foreach ($name in @('MQPrintAgent', 'labelrender', 'rawprint')) {
-    Write-Host "==> 编译 $name" -ForegroundColor Cyan
+    Write-Host "==> build $name" -ForegroundColor Cyan
     dotnet build (Join-Path $buildDir "$name.csproj") -c Release --nologo
-    if ($LASTEXITCODE -ne 0) { throw "$name 编译失败" }
+    if ($LASTEXITCODE -ne 0) { throw "$name build failed" }
 }
 
-foreach ($file in @(
-    'MQPrintAgent.exe',     'MQPrintAgent.exe.config',
-    'labelrender.exe',      'labelrender.exe.config',
-    'rawprint.exe',         'rawprint.exe.config')) {
+# net48 does not generate .exe.config, only copy exe
+foreach ($file in @('MQPrintAgent.exe', 'labelrender.exe', 'rawprint.exe')) {
     Copy-Item (Join-Path $outDir $file) $toolsDir -Force
 }
 
-Write-Host "已更新 $toolsDir 下的 exe 与 exe.config" -ForegroundColor Green
+# Clean up old .exe.config files from net35 era
+foreach ($cfg in @('MQPrintAgent.exe.config', 'labelrender.exe.config', 'rawprint.exe.config')) {
+    $old = Join-Path $toolsDir $cfg
+    if (Test-Path $old) { Remove-Item $old -Force; Write-Host "cleaned $cfg" -ForegroundColor Yellow }
+}
+
+Write-Host "done: updated exe in $toolsDir (single file, no .exe.config)" -ForegroundColor Green

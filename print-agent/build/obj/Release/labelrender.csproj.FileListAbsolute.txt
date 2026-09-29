@@ -4,3 +4,9 @@ C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\labelrender.csproj.Asse
 C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\labelrender.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\labelrender.csproj.CoreCompileInputs.cache
 C:\Users\zhou\Desktop\1115\print-agent\build\obj\Release\labelrender.exe
+E:\360MoveData\Users\Administrator\Desktop\111\print-agent\build\bin\Release\labelrender.exe.config
+E:\360MoveData\Users\Administrator\Desktop\111\print-agent\build\bin\Release\labelrender.exe
+E:\360MoveData\Users\Administrator\Desktop\111\print-agent\build\obj\Release\labelrender.csproj.AssemblyReference.cache
+E:\360MoveData\Users\Administrator\Desktop\111\print-agent\build\obj\Release\labelrender.GeneratedMSBuildEditorConfig.editorconfig
+E:\360MoveData\Users\Administrator\Desktop\111\print-agent\build\obj\Release\labelrender.csproj.CoreCompileInputs.cache
+E:\360MoveData\Users\Administrator\Desktop\111\print-agent\build\obj\Release\labelrender.exe

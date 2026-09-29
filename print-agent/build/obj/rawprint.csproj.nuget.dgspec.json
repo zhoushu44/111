@@ -1,30 +1,30 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\zhou\\Desktop\\1115\\print-agent\\build\\rawprint.csproj": {}
+    "E:\\360MoveData\\Users\\Administrator\\Desktop\\111\\print-agent\\build\\rawprint.csproj": {}
   },
   "projects": {
-    "C:\\Users\\zhou\\Desktop\\1115\\print-agent\\build\\rawprint.csproj": {
+    "E:\\360MoveData\\Users\\Administrator\\Desktop\\111\\print-agent\\build\\rawprint.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\zhou\\Desktop\\1115\\print-agent\\build\\rawprint.csproj",
+        "projectUniqueName": "E:\\360MoveData\\Users\\Administrator\\Desktop\\111\\print-agent\\build\\rawprint.csproj",
         "projectName": "rawprint",
-        "projectPath": "C:\\Users\\zhou\\Desktop\\1115\\print-agent\\build\\rawprint.csproj",
-        "packagesPath": "C:\\Users\\zhou\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\zhou\\Desktop\\1115\\print-agent\\build\\obj\\",
+        "projectPath": "E:\\360MoveData\\Users\\Administrator\\Desktop\\111\\print-agent\\build\\rawprint.csproj",
+        "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
+        "outputPath": "E:\\360MoveData\\Users\\Administrator\\Desktop\\111\\print-agent\\build\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\zhou\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net35"
+          "net40"
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net35": {
-            "targetAlias": "net35",
+          "net40": {
+            "targetAlias": "net40",
             "projectReferences": {}
           }
         },
@@ -37,24 +37,24 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "10.0.100"
+        }
       },
       "frameworks": {
-        "net35": {
-          "targetAlias": "net35",
+        "net40": {
+          "targetAlias": "net40",
           "dependencies": {
             "Microsoft.NETFramework.ReferenceAssemblies": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[1.0.3, )"
+              "version": "[1.0.3, )",
+              "autoReferenced": true
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.418\\RuntimeIdentifierGraph.json"
         }
       },
       "runtimes": {
-        "win-x86": {
+        "win7-x86": {
           "#import": []
         }
       }
