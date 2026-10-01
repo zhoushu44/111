@@ -36,12 +36,22 @@ internal static class MQPrintAgent
     private static double _xOffsetMm = 16; // 横向偏移补偿：居中装 70mm 标签时打印头左基准偏左 16mm
     // 测纸指令：PPLB 的 xa = 自动校准，走纸 1~4 张把原点对到标签起点
     private static string _calibrateCmd = "xa\n";
-    // 代理启动后首次打印前先测纸一次，之后沿用定位；成功后置 false，换纸可在托盘/状态页重新校准
+    // 打印方向：PPLB 的 Z 命令，ZT = 正常、ZB = 上下颠倒。每张都下发，不再依赖打印机存储的方向
+    private static string _printDirection = "ZT";
+    // 代理启动后首次打印前先测纸一次：仅在从未校准过（calibrated.pref 不存在）时为 true，
+    // 完成后落盘，重启不再自动走纸；换纸/换机器用托盘或状态页的「重新校准」手动触发
     private static bool _needCalibrate = true;
+
+    /// <summary>标记本机已完成定位校准并落盘，后续启动不再自动走纸测纸</summary>
+    private static void MarkCalibrated()
+    {
+        _needCalibrate = false;
+        try { File.WriteAllText(_calibPath, "1"); } catch { }
+    }
 
     private static readonly List<TcpListener> _listeners = new List<TcpListener>();
     private static NotifyIcon _tray;
-    private static string _dir, _logPath, _prefPath;
+    private static string _dir, _logPath, _prefPath, _calibPath;
 
     [STAThread]
     private static void Main()
@@ -59,7 +69,15 @@ internal static class MQPrintAgent
             _dir = Path.GetDirectoryName(Application.ExecutablePath);
             _logPath = Path.Combine(_dir, "agent.log");
             _prefPath = Path.Combine(_dir, "autostart.pref");
+            _calibPath = Path.Combine(_dir, "calibrated.pref");
             LoadConfig();
+            // 本机已校准过（定位结果存在打印机里、断电不丢）就不再于每次启动后走纸测纸，
+            // 换纸/换机器时用托盘或状态页的「重新校准」手动触发
+            try
+            {
+                if (File.Exists(_calibPath) && File.ReadAllText(_calibPath).Trim() == "1") _needCalibrate = false;
+            }
+            catch { }
 
             // 双栈监听：.NET 3.5 无 DualMode，改为在 IPv4 与 IPv6 上各起一个监听
             // 先绑 IPv4（XP/7/10/11 均可用），再尽力绑 IPv6；IPv6 被禁用时忽略即可
@@ -134,6 +152,8 @@ internal static class MQPrintAgent
             if (lb.ContainsKey("gapMm")) _gapMm = ToDbl(lb["gapMm"], _gapMm);
             if (lb.ContainsKey("xOffsetMm")) _xOffsetMm = ToDbl(lb["xOffsetMm"], _xOffsetMm);
             if (lb.ContainsKey("calibrateCmd")) _calibrateCmd = Convert.ToString(lb["calibrateCmd"]);
+            // 打印方向 ZT/ZB：正常用 ZT；某台打印机被改过 180° 时可改成 ZB 单独适配
+            if (lb.ContainsKey("printDirection")) _printDirection = Convert.ToString(lb["printDirection"]);
         }
         catch (Exception ex) { Log("读取 config.json 失败: " + ex.Message); }
     }
@@ -262,7 +282,7 @@ internal static class MQPrintAgent
         try
         {
             LabelRender.ExecuteJobText(BuildJob(json));
-            _needCalibrate = false;
+            MarkCalibrated();
             _tray.ShowBalloonTip(3000, "敏群打印代理", "测试标签已发送到打印机", ToolTipIcon.Info);
         }
         catch (Exception ex)
@@ -278,7 +298,7 @@ internal static class MQPrintAgent
         try
         {
             LabelRender.CalibrateMedia(_printerName, _calibrateCmd);
-            _needCalibrate = false;
+            MarkCalibrated();
             _tray.ShowBalloonTip(3000, "敏群打印代理", "已发送测纸指令，打印机会走纸对齐标签起点", ToolTipIcon.Info);
         }
         catch (Exception ex)
@@ -379,6 +399,12 @@ internal static class MQPrintAgent
                 {
                     WriteResponse(ns, 200, "application/json; charset=utf-8", StatusJson(), origin);
                 }
+                // 线上前端用 <img src="http://localhost:8790/pixel.gif?t=..."> 探测代理是否在线：
+                // 图片加载成功即视为在线，返回 404 会被前端判成「未检测到本地代理（请启动 MQPrintAgent.exe）」
+                else if (method == "GET" && (route == "/pixel.gif" || route == "/pixel.png"))
+                {
+                    WriteResponseBytes(ns, 200, "image/gif", PixelGif, origin);
+                }
                 else if (method == "POST" && route == "/api/print/label")
                 {
                     string result;
@@ -386,7 +412,7 @@ internal static class MQPrintAgent
                     try
                     {
                         result = LabelRender.ExecuteJobText(BuildJob(bodyText));
-                        _needCalibrate = false;
+                        MarkCalibrated();
                     }
                     catch (Exception ex)
                     {
@@ -403,7 +429,7 @@ internal static class MQPrintAgent
                     try
                     {
                         LabelRender.CalibrateMedia(_printerName, _calibrateCmd);
-                        _needCalibrate = false;
+                        MarkCalibrated();
                         result = "{\"ok\":true,\"calibrated\":true}";
                     }
                     catch (Exception ex)
@@ -458,6 +484,7 @@ internal static class MQPrintAgent
         label["gapMm"] = _gapMm;
         label["xOffsetMm"] = _xOffsetMm;
         label["calibrateCmd"] = _calibrateCmd;
+        label["printDirection"] = _printDirection;
         job["label"] = label;
         return ser.Serialize(job);
     }
@@ -470,6 +497,8 @@ internal static class MQPrintAgent
                ",\"heightMm\":" + _heightMm.ToString(CultureInfo.InvariantCulture) +
                ",\"dpi\":" + _dpi +
                ",\"gapMm\":" + _gapMm.ToString(CultureInfo.InvariantCulture) +
+               ",\"printDirection\":" + Quote(_printDirection) +
+               ",\"needCalibrate\":" + (_needCalibrate ? "true" : "false") +
                ",\"xOffsetMm\":" + _xOffsetMm.ToString(CultureInfo.InvariantCulture) + "}}}";
     }
 
@@ -496,9 +525,20 @@ internal static class MQPrintAgent
                "</div></body></html>";
     }
 
+    // 1×1 全透明 GIF：供前端 <img> 在线探测使用，任何浏览器都能正常触发 onload
+    private static readonly byte[] PixelGif = new byte[] {
+        0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x2C, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3B
+    };
+
     private static void WriteResponse(NetworkStream ns, int status, string contentType, string body, string origin)
     {
-        byte[] data = Encoding.UTF8.GetBytes(body ?? "");
+        WriteResponseBytes(ns, status, contentType, Encoding.UTF8.GetBytes(body ?? ""), origin);
+    }
+
+    private static void WriteResponseBytes(NetworkStream ns, int status, string contentType, byte[] data, string origin)
+    {
         StringBuilder sb = new StringBuilder();
         sb.Append("HTTP/1.1 ").Append(status).Append(' ').Append(StatusText(status)).Append("\r\n");
         sb.Append("Content-Type: ").Append(contentType).Append("\r\n");
@@ -506,6 +546,9 @@ internal static class MQPrintAgent
         sb.Append("Access-Control-Allow-Origin: ").Append(string.IsNullOrEmpty(origin) ? "*" : origin).Append("\r\n");
         sb.Append("Access-Control-Allow-Methods: GET,POST,OPTIONS\r\n");
         sb.Append("Access-Control-Allow-Headers: Content-Type\r\n");
+        // 页面部署在公网 IP 上，浏览器把「公网页面 → localhost」判为私有网络访问（PNA），
+        // 预检必须显式允许，否则 Chrome/Edge 直接拦掉请求，前端就会报「未检测到本地代理」
+        sb.Append("Access-Control-Allow-Private-Network: true\r\n");
         sb.Append("Vary: Origin\r\n");
         sb.Append("Cache-Control: no-store\r\n");
         sb.Append("Connection: close\r\n\r\n");

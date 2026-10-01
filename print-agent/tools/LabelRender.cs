@@ -41,6 +41,10 @@ internal static class LabelRender
     // 测纸（自动校准）指令：PPLB 的 xa = Auto Calibration，会走纸 1~4 张找到标签缝隙
     // 首张打印前先发一次，打印机才会把原点对到标签起点，否则从当前纸位直接开印导致内容偏移/被切
     private const string DEFAULT_CALIBRATE_CMD = "xa\n";
+    // 打印方向：PPLB 的 Z 命令。ZT = 正常（默认），ZB = 上下颠倒 180°
+    // 必须每张都显式下发——不发时方向取自打印机自己存储的设置，
+    // 换一台打印机（或被人改过驱动 180° 旋转并写进 flash 的机器）就会打出来上下颠倒
+    private const string DEFAULT_PRINT_DIRECTION = "ZT";
 
     // 缩字号档位：从原字号逐档缩小，取第一个能整体放下的
     private static readonly double[] SCALES = { 1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6 };
@@ -493,15 +497,18 @@ internal static class LabelRender
         return new RenderResult { WidthDots = W, HeightDots = H, Raster = raster };
     }
 
-    /// <summary>包成 PPLB 指令：N 清缓冲 / q 宽 / Q 高+gap / R 原点 / GW 位图 / P 份数</summary>
-    private static byte[] BuildPplb(byte[] raster, int widthDots, int heightDots, int copies, int gapDots)
+    /// <summary>包成 PPLB 指令：N 清缓冲 / q 宽 / Q 高+gap / Z 方向 / R 原点 / GW 位图 / P 份数</summary>
+    private static byte[] BuildPplb(byte[] raster, int widthDots, int heightDots, int copies, int gapDots, string printDirection, int xOffsetDots)
     {
         int bpr = widthDots / 8;
         int n = Math.Max(1, Math.Min(100, copies));
         // Q 的第二个参数是标签间隙（dots），间隙纸必须填实际值，否则走纸定位会漂移
-        // GW 的 X 起点补偿打印机横向偏移（本机实测左侧被切 16mm = 128 dots）
-        int xOffset = Math.Max(0, Dots(LABEL_X_OFFSET_MM, FALLBACK_DPI));
-        byte[] head = Encoding.ASCII.GetBytes("N\nq" + widthDots + "\nQ" + heightDots + "," + gapDots + "\nR0,0\nGW" + xOffset + ",0," + bpr + "," + heightDots + ",");
+        // Z 显式锁定打印方向，避免沿用各台打印机自己存储的（可能被改成 180°）方向
+        string dir = (printDirection ?? "").Trim().ToUpperInvariant();
+        if (dir != "ZT" && dir != "ZB") dir = DEFAULT_PRINT_DIRECTION;
+        // GW 的 X 起点补偿打印机横向偏移：各台机器装纸位置不同，由 config.json 的 xOffsetMm 决定
+        int xOffset = Math.Max(0, xOffsetDots);
+        byte[] head = Encoding.ASCII.GetBytes("N\nq" + widthDots + "\nQ" + heightDots + "," + gapDots + "\n" + dir + "\nR0,0\nGW" + xOffset + ",0," + bpr + "," + heightDots + ",");
         byte[] foot = Encoding.ASCII.GetBytes("\nP" + n + "\n");
         using (MemoryStream ms = new MemoryStream())
         {
@@ -685,6 +692,9 @@ internal static class LabelRender
         double gapMm = Dbl(cfg, "gapMm", LABEL_GAP_MM);
         int gapDots = Math.Max(0, Dots(gapMm, dpi));
         string calibrateCmd = Str(cfg, "calibrateCmd", DEFAULT_CALIBRATE_CMD);
+        string printDirection = Str(cfg, "printDirection", DEFAULT_PRINT_DIRECTION);
+        double xOffsetMm = Dbl(cfg, "xOffsetMm", LABEL_X_OFFSET_MM);
+        int xOffsetDots = Math.Max(0, Dots(xOffsetMm, dpi));
 
         object rawLabels;
         if (!root.TryGetValue("labels", out rawLabels) || rawLabels == null)
@@ -736,7 +746,7 @@ internal static class LabelRender
             string preview = previewOut != null && printed == 0 ? previewOut : null;
 
             RenderResult r = RenderLabel(dpi, widthMm, heightMm, header, itemNo, keys, values, withHeader, qrValue, preview);
-            byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, copies, gapDots);
+            byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, copies, gapDots, printDirection, xOffsetDots);
 
             if (!string.IsNullOrEmpty(prnOut))
             {
@@ -761,7 +771,7 @@ internal static class LabelRender
 
         RenderResult r = RenderCalib(FALLBACK_DPI, 70, 40, preview);
         // 标定标签必须和正式打印用同一个间隙值，否则测出来的偏移不代表真实情况
-        byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, 1, Math.Max(0, Dots(LABEL_GAP_MM, FALLBACK_DPI)));
+        byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, 1, Math.Max(0, Dots(LABEL_GAP_MM, FALLBACK_DPI)), DEFAULT_PRINT_DIRECTION, Dots(LABEL_X_OFFSET_MM, FALLBACK_DPI));
         File.WriteAllBytes(outPath, pplb);
         if (!string.IsNullOrEmpty(printerName))
         {
@@ -791,7 +801,7 @@ internal static class LabelRender
         };
 
         RenderResult r = RenderLabel(FALLBACK_DPI, 70, 40, DEFAULT_HEADER, itemNo, keys, values, true, itemNo, preview);
-        byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, 1, Math.Max(0, Dots(LABEL_GAP_MM, FALLBACK_DPI)));
+        byte[] pplb = BuildPplb(r.Raster, r.WidthDots, r.HeightDots, 1, Math.Max(0, Dots(LABEL_GAP_MM, FALLBACK_DPI)), DEFAULT_PRINT_DIRECTION, Dots(LABEL_X_OFFSET_MM, FALLBACK_DPI));
         File.WriteAllBytes(outPath, pplb);
         Console.WriteLine("OK " + outPath + " " + pplb.Length);
         if (!string.IsNullOrEmpty(printerName))
