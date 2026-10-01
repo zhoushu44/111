@@ -9,6 +9,33 @@ import { type LabelVariant } from '@/components/LabelPrintMenu'
 
 type Label = { qrValue: string; variant?: LabelVariant; header?: boolean; copies?: number; data: { materialId: string; itemNo: string; name: string; specification?: string | null; composition?: string | null; construction?: string | null; width?: string | null; weight?: string | null; quantity?: number; remark?: string | null; imageUrl?: string | null } }
 
+/* ===== 本地网络访问（LNA）=====
+   Chrome 142+ / Edge 143+ 起，公网 HTTPS 页面请求 http://localhost 属跨地址空间访问，会被浏览器拦截
+   （控制台报 "Permission was denied for this request to access the 'unknown' address space"）。
+   解法：fetch 时显式声明目标地址空间为 loopback，并由页面主动触发一次授权，用户允许后长期有效。 */
+type LnaState = 'unknown' | 'granted' | 'prompt' | 'denied' | 'unsupported'
+// 新版（Chrome 145+）拆出 loopback-network；旧版名为 local-network-access（仍作为别名保留）
+const LNA_PERMISSION_NAMES = ['loopback-network', 'local-network-access']
+
+// targetAddressSpace 尚未进入所有 TS DOM 类型定义，这里显式声明
+type AgentRequestInit = RequestInit & { targetAddressSpace?: 'loopback' | 'local' | 'private' | 'public' }
+
+const agentFetch = (url: string, init: AgentRequestInit = {}) => {
+  const options: AgentRequestInit = { mode: 'cors', ...init, targetAddressSpace: 'loopback' }
+  return fetch(url, options as RequestInit)
+}
+
+async function queryLnaPermission(): Promise<LnaState> {
+  if (!navigator.permissions?.query) return 'unsupported'
+  for (const name of LNA_PERMISSION_NAMES) {
+    try {
+      const status = await navigator.permissions.query({ name } as unknown as PermissionDescriptor)
+      return status.state as LnaState
+    } catch { /* 浏览器不认识该权限名，继续试下一个 */ }
+  }
+  return 'unsupported'
+}
+
 // 标签 Remark 过滤价格类内容（USD/CNY 等报价不上标签），与本地代理 ZPL 渲染规则一致
 function displayRemark(remark: string | null | undefined) {
   if (!remark) return '-'
@@ -180,6 +207,23 @@ export default function LabelPrint() {
   const agentUrl = 'http://localhost:8790'
   const [agentOnline, setAgentOnline] = useState(false)
   const [agentMsg, setAgentMsg] = useState('')
+  const [lnaState, setLnaState] = useState<LnaState>('unknown')
+
+  // 主动申请本地网络访问权限：fetch 一次 localhost 触发浏览器授权弹窗，用户允许后本页所有代理请求即可放行
+  const requestLnaPermission = async () => {
+    setLnaState(await queryLnaPermission())
+    try {
+      // 不带 targetAddressSpace 的裸请求才能触发权限提示（已授权时该请求会正常返回代理状态页）
+      await fetch(`${agentUrl.replace(/\/$/, '')}/api/status`, { mode: 'cors' })
+    } catch { /* 被拦截或代理未启动都属预期，权限状态以 Permissions API 查询为准 */ }
+    const next = await queryLnaPermission()
+    setLnaState(next)
+    if (next === 'denied') {
+      setAgentMsg('本地网络访问权限已被拒绝，请在地址栏左侧的权限图标中重新允许后刷新页面。')
+    } else if (next === 'granted' || next === 'unsupported') {
+      setAgentMsg('已获得本地网络访问权限。')
+    }
+  }
 
   const requestLabels = async (mode: 'PREVIEW' | 'PRINT', scanIds = scannedIds) => {
     const payload = { temporaryRemark: temporaryRemark || null, remarkMode, copies, mode, variant, header }
@@ -200,8 +244,14 @@ export default function LabelPrint() {
       if (mode === 'PRINT') {
         // 固定走本地打印代理（labelrender.exe RAW 直发），不走浏览器打印
         try {
+          // 权限被拒时先给出明确提示，避免只抛一句 "Failed to fetch"
+          const perm = await queryLnaPermission()
+          setLnaState(perm)
+          if (perm === 'denied') {
+            throw new Error('浏览器已拒绝本机打印权限，请点击上方「重新申请本机打印权限」并在弹窗中选择「允许」')
+          }
           const agentLabels = nextLabels.map((label) => ({ ...label, variant: label.variant ?? variant, header: label.header ?? header, data: { ...label.data, companyName } }))
-          const resp = await fetch(`${agentUrl.replace(/\/$/, '')}/api/print/label`, {
+          const resp = await agentFetch(`${agentUrl.replace(/\/$/, '')}/api/print/label`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ labels: agentLabels }),
@@ -221,7 +271,7 @@ export default function LabelPrint() {
   // 首张打印时代理会自动测纸，这里只是给现场一个随时重校的入口
   const calibrateAgent = async () => {
     try {
-      const resp = await fetch(`${agentUrl.replace(/\/$/, '')}/api/print/calibrate`, {
+      const resp = await agentFetch(`${agentUrl.replace(/\/$/, '')}/api/print/calibrate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
@@ -246,7 +296,7 @@ export default function LabelPrint() {
   // 本地打印代理在线检测（自动识别）：始终探测，决定是否走代理
   useEffect(() => {
     let alive = true
-    const check = () => fetch(`${agentUrl.replace(/\/$/, '')}/api/status`, { headers: { 'Content-Type': 'application/json' } })
+    const check = () => agentFetch(`${agentUrl.replace(/\/$/, '')}/api/status`, { headers: { 'Content-Type': 'application/json' } })
       .then((r) => {
         if (!alive) return
         setAgentOnline(r.ok)
@@ -255,8 +305,9 @@ export default function LabelPrint() {
       .catch(() => {
         if (!alive) return
         setAgentOnline(false)
-        setAgentMsg('未检测到本地代理（请启动 MQPrintAgent.exe）')
+        setAgentMsg('未检测到本地代理（请启动 MQPrintAgent.exe，或点击「启用本机打印」授权）')
       })
+    void queryLnaPermission().then((state) => { if (alive) setLnaState(state) })
     check()
     const t = window.setInterval(check, 8000)
     return () => { alive = false; window.clearInterval(t) }
@@ -306,6 +357,11 @@ export default function LabelPrint() {
     <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
       <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs ${agentOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}><span className={`h-2 w-2 rounded-full ${agentOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />{agentOnline ? '打印代理在线' : '打印代理未启动'}</span>
       {agentMsg && <span className="text-xs text-slate-500">{agentMsg}</span>}
+      {(lnaState === 'prompt' || lnaState === 'denied') && (
+        <button className="rounded-lg bg-sky-600 px-3 py-1 text-xs text-white hover:bg-sky-700" onClick={() => void requestLnaPermission()}>
+          {lnaState === 'denied' ? '重新申请本机打印权限' : '启用本机打印'}
+        </button>
+      )}
       <button className="rounded-lg bg-slate-100 px-3 py-1 text-xs text-slate-700 disabled:opacity-50" disabled={!agentOnline} onClick={() => void calibrateAgent()}>校准标签定位</button>
     </div>
     <div className="mb-4 flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200 bg-white p-4">
