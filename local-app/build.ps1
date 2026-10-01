@@ -1,4 +1,4 @@
-# build local-erp single-file exe (敏群商贸 ERP 本地版)
+﻿# build local-erp single-file exe (敏群商贸 ERP 本地版)
 #
 # 步骤：1) 构建前端(vite) → 2) 复制进 local-app\web 并内嵌 → 3) 编译 exe → 4) 输出到 ..\本地ERP版
 # 用法：powershell -ExecutionPolicy Bypass -File .\build.ps1

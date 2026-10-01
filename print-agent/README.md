@@ -12,9 +12,12 @@
 | 串口(COM) 读条码枪 (`READCOMMIZED`) | 串口扫描器（可选 `serialport`）经 SSE 推送；Web 端另可用键盘楔子扫码 |
 | 选样单预览 / 打印 (`SPreview`+`PrintDlg`) | Web 端 `SampleChoosePreview.tsx` + `LabelPrint.tsx` |
 
-## 运行（推荐：免安装单文件 exe）
+## 运行（推荐：免安装分发包）
 
-把 `tools/MQPrintAgent.exe` 与同名的 `MQPrintAgent.exe.config` **两个文件一起**拷到目标电脑，双击 exe 即用。
+执行 `print-agent\build\build.ps1` 会生成 `dist\MQPrintAgent-<日期>.zip`，**解压即用**：
+包内已含运行时需要的全部文件（3 个 exe + 各自的 `.exe.config` + `使用说明.txt`），分发时整包拷走即可，避免漏拷导致启动失败。
+
+也可以手工拷贝：把 `tools/MQPrintAgent.exe` 与同名的 `MQPrintAgent.exe.config` **两个文件一起**拷到目标电脑，双击 exe 即用。
 
 ### 系统兼容性（XP / 7 / 10 / 11）
 
@@ -33,7 +36,8 @@ exe 目标框架为 **.NET Framework 3.5（CLR 2.0）**，四代系统均可运�
 - 无需安装 Node.js 或其它运行库
 - 启动后常驻右下角托盘，自动监听 `http://localhost:8790`
 - 默认开机自启（托盘菜单可关），开机后网页即可直接打印
-- 全部打印参数固定在 exe 内：打印机 `Argox CP-2140M PPLB`、标签 `70×40mm @203dpi`
+- 打印参数可在状态页调整并保存到 `config.json`：打印机名（**下拉选择本机已安装的打印机**）、标签宽/高/DPI/间隙、横向偏移、打印方向
+- 启动时会校验配置的打印机名是否存在于本机，不存在则写日志列出全部候选并弹托盘气泡提示，避免只报「错误 1801」这种看不懂的故障
 - 打印走 **winspool RAW 直发**，绕过驱动渲染，**所有电脑输出完全一致**
 
 托盘菜单：打开状态页 / 打印测试标签 / 校准标签定位 / 开机自动启动（勾选开关）/ 退出。
@@ -44,17 +48,24 @@ exe 目标框架为 **.NET Framework 3.5（CLR 2.0）**，四代系统均可运�
 
 ```powershell
 cd print-agent\build
-.\build.ps1     # 依次编译 3 个 exe，并把 exe 与 exe.config 复制到 ..\tools\
+.\build.ps1     # 编译 3 个 exe → 复制到 ..\tools\ → 打包 ..\dist\MQPrintAgent-<日期>.zip
 ```
 
 构建使用 .NET SDK + NuGet 参考程序集（`Microsoft.NETFramework.ReferenceAssemblies`），**开发机无需安装 .NET 3.5 目标包**。
 
 ### 可选配置
 
-在同目录放 `config.json` 可覆盖默认参数：
+程序目录下的 `config.json` 保存当前参数（状态页点「保存设置」时自动写入，也可手工编辑）：
 
 ```json
-{ "port": 8790, "printerName": "Argox CP-2140M PPLB", "label": { "widthMm": 70, "heightMm": 40, "dpi": 203 } }
+{
+  "port": 8790,
+  "printer": {
+    "mode": "windows-raw",
+    "printerName": "Argox CP-2140M PPLB",
+    "label": { "widthMm": 70, "heightMm": 40, "dpi": 203, "gapMm": 2, "xOffsetMm": 16, "printDirection": "ZT" }
+  }
+}
 ```
 
 ### 备用：Node 版（开发调试用）
