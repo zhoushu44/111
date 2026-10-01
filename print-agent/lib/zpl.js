@@ -208,8 +208,17 @@ function buildPplbRaster(raster, widthDots, heightDots, copies = 1, gapMm = 2, d
   const n = Math.max(1, Math.min(100, Number(copies) || 1))
   const gapDots = Math.max(0, Math.round((Number(gapMm) || 0) * Number(dpi) / 25.4))
   const xOffset = Math.max(0, Math.round((Number(xOffsetMm) || 0) * Number(dpi) / 25.4))
-  // q=标签宽(dot)，Q=标签高+间隙(dot)，R=原点，GW=直接写图形
-  const header = Buffer.from(`N\nq${W}\nQ${H},${gapDots}\nR0,0\nGW${xOffset},0,${bytesPerRow},${H},`, 'ascii')
+  // 指令说明（依据 Argox PPLB 官方指令表）：
+  //   N        清图像缓冲
+  //   D11      打印热度(Heat Setting)，取值 0~15。★注意 D 是「浓度」不是「方向」，
+  //            原先误写成 D1（最低浓度）会打出来几乎全白，且该值会存进打印机 EEPROM，
+  //            导致之后任何软件打印都偏淡。原版 HSTIP 样本用的是 D11。
+  //   ZT       打印方向（Z = Set Print Direction，合法值只有 ZB/ZT，Z0 非法）
+  //   q        标签宽(dot)
+  //   Q        标签高+间隙(dot)
+  //   R        原点
+  //   GW       直接写 1-bit 位图
+  const header = Buffer.from(`N\nD11\nZT\nq${W}\nQ${H},${gapDots}\nR0,0\nGW${xOffset},0,${bytesPerRow},${H},`, 'ascii')
   const footer = Buffer.from(`\nP${n}\n`, 'ascii')
   return Buffer.concat([header, raster, footer])
 }

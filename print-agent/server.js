@@ -45,6 +45,9 @@ function cors(req, res) {
   res.setHeader('Vary', 'Origin')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  // 部署在服务器上的 ERP 网页（非本机来源）访问本代理属于「本地网络访问」：
+  // Chrome/Edge 会对预检要求该响应头，缺失时请求被直接拦截（点了打印没反应）。
+  res.setHeader('Access-Control-Allow-Private-Network', 'true')
 }
 function readBody(req) {
   return new Promise((resolve, reject) => {

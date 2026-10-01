@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- 目标 .NET Framework 3.5（CLR2）：XP / 7 / 10 / 11 通用，与打印代理保持同一运行环境。
+         参考程序集由 NuGet 包自动还原，本机无需安装 3.5 目标包。 -->
+    <TargetFramework>net35</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <DefineConstants>$(DefineConstants);NETFRAMEWORK</DefineConstants>
+    <AppConfig>App.config</AppConfig>
+    <!-- WinExe：不弹命令行窗口，改为右下角托盘图标（无窗口运行） -->
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>MQLocalErp</AssemblyName>
+    <RootNamespace>MQLocalErp</RootNamespace>
+    <StartupObject>LocalErp</StartupObject>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>none</DebugType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 从 nuget.org 还原 .NET 3.5 参考程序集，本机无需安装 3.5 目标包 -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <!-- 标签渲染引擎：直接复用打印代理的 LabelRender.cs（GDI+ 渲染整张位图 + PPLB 封装 + winspool RAW 直发），
+       保证本地版输出与现有打印代理、以及原版 HSTIP 的 RAW 通道完全一致，不重复实现。 -->
+  <ItemGroup>
+    <Compile Include="..\print-agent\tools\LabelRender.cs" />
+    <Compile Include="..\print-agent\tools\qrcoder\QRCodeGenerator.cs" />
+    <Compile Include="..\print-agent\tools\qrcoder\QRCodeData.cs" />
+    <Compile Include="..\print-agent\tools\qrcoder\Exceptions\DataTooLongException.cs" />
+    <Compile Include="..\print-agent\tools\qrcoder\Framework4.0Methods\Stream4Methods.cs" />
+  </ItemGroup>
+
+  <!-- 前端构建产物（dist）在 build.ps1 里复制到本目录 web/，整体内嵌进 exe，实现真·单文件 -->
+  <ItemGroup>
+    <EmbeddedResource Include="web\**\*" LogicalName="web/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

@@ -43,3 +43,18 @@ _*
 # 本地 PostgreSQL 数据目录（开发调试用，不入库）
 .pg-local/
 .postgres-data/
+
+# .NET 构建产物（本地版 exe 源码 local-app、打印代理 print-agent/build）
+**/bin/
+**/obj/
+local-app/web/
+
+# 本地打包产物
+本地ERP版.7z
+# 未采纳的厂商原版程序副本（130MB，仅本地留档）
+本地ERP版/原版HSTIP_SHMQ/
+
+# PPLA 探测/对比脚本与需求稿（未采用，仅本地留档）
+compare-ppla.cjs
+probe-ppla*.cjs
+标签打印-复刻原版-需求说明.md

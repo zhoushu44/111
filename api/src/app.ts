@@ -65,11 +65,18 @@ app.use(
 // 强制升级为 HTTPS。部署环境可能只有 HTTP（如 192.6.121.16:7776），升级后请求全部
 // 失败导致图片裂图、页面白屏。这里关闭该指令，兼容 HTTP 与 HTTPS 两种访问方式；
 // HSTS 仅在 HTTPS 响应中生效，不影响 HTTP 访问，故保留。
+// img-src 需放开外链：面料图片已迁移到对象存储（腾讯 COS），url 为跨域绝对地址，
+// 而 helmet 默认 img-src 仅 'self' data:，会导致浏览器拒绝加载图片（全部裂图）。
+// connect-src 需放开本机打印代理：标签打印页直接 fetch http://localhost:8790 驱动本机
+// 标签打印机，helmet 默认 connect-src 回落到 default-src 'self'，会把该请求直接拦掉，
+// 表现为「打印代理未启动」、点打印必失败。
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
       'upgrade-insecure-requests': null,
+      'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+      'connect-src': ["'self'", 'http://localhost:*', 'http://127.0.0.1:*'],
     },
   },
 }));
