@@ -46,14 +46,15 @@ internal static class LabelRender
     // 换一台打印机（或被人改过驱动 180° 旋转并写进 flash 的机器）就会打出来上下颠倒
     private const string DEFAULT_PRINT_DIRECTION = "ZT";
 
-    // 缩字号档位：从原字号逐档缩小，取第一个能整体放下的
-    private static readonly double[] SCALES = { 1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6 };
+    // 缩字号档位：从原字号逐档缩小，取第一个能整体放下的（下探到 0.4 保证超长备注也能一张打完）
+    private static readonly double[] SCALES = { 1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4 };
     // 备注专属档位：备注过长时优先只缩备注字号，其他行保持不变；实在放不下才整体缩小
     private static readonly double[] REMARK_SCALES = { 1, 0.9, 0.8, 0.7, 0.6, 0.5 };
     // 各元素基准字号/行高（dots @203dpi，随档位等比缩放）
-    private const int BASE_ROW_FONT = 20, BASE_ROW_LINE = 22;
-    private const int BASE_ITEM_FONT = 24, BASE_ITEM_LINE = 30;
-    private const int BASE_HEADER_FONT = 30, BASE_HEADER_LINE = 36;
+    // 按 HSTIP 原版照片实测对齐：三种行同字号（字高约 2.1mm），行距 3.8mm
+    private const int BASE_ROW_FONT = 22, BASE_ROW_LINE = 30;
+    private const int BASE_ITEM_FONT = 22, BASE_ITEM_LINE = 30;
+    private const int BASE_HEADER_FONT = 22, BASE_HEADER_LINE = 30;
 
     private static int Dots(double mm, int dpi) { return (int)Math.Round(mm * dpi / MM); }
 
@@ -142,20 +143,64 @@ internal static class LabelRender
         string text = (value ?? "").Replace("\r\n", "\n").Replace('\r', '\n').Replace('\n', ' ').Trim();
         if (text.Length == 0) text = "-";
         List<string> outp = new List<string>();
+        // 英文优先按空格断词（避免 Poly/ester 被硬拆），超长单词才硬切；中文逐字折行
         string cur = "";
         int used = 0;
-        for (int i = 0; i < text.Length; i++)
+        string[] words = text.Split(' ');
+        foreach (string w0 in words)
         {
-            int code = char.ConvertToUtf32(text, i);
-            string ch = char.ConvertFromUtf32(code);
-            if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length) i++;
-            int u = CharUnits(code);
-            if (used + u > cap && cur.Length > 0) { outp.Add(cur); cur = ""; used = 0; }
-            cur += ch;
-            used += u;
+            if (w0.Length == 0) continue;
+            string word = w0;
+            // 当前行为空且整个词放不下 → 硬切该词
+            while (UnitLen(word) > cap)
+            {
+                if (cur.Length > 0) { outp.Add(cur.TrimEnd()); cur = ""; used = 0; }
+                int take = IndexAtUnits(word, 0, cap);
+                outp.Add(word.Substring(0, take));
+                word = word.Substring(take);
+            }
+            int wu = UnitLen(word);
+            int sep = cur.Length > 0 ? 1 : 0; // 词间一个空格
+            if (used + sep + wu > cap && cur.Length > 0)
+            {
+                outp.Add(cur.TrimEnd());
+                cur = ""; used = 0; sep = 0;
+            }
+            if (cur.Length > 0) { cur += " "; used += 1; }
+            cur += word;
+            used += wu;
         }
-        outp.Add(cur);
+        if (cur.Length > 0) outp.Add(cur.TrimEnd());
+        if (outp.Count == 0) outp.Add("-");
         return outp;
+    }
+
+    /// <summary>字符串占用的字宽单位数（全角=2 半角=1，代理对按码点计）</summary>
+    private static int UnitLen(string s)
+    {
+        int u = 0;
+        for (int i = 0; i < s.Length; )
+        {
+            int code = char.ConvertToUtf32(s, i);
+            u += CharUnits(code);
+            i += char.ConvertFromUtf32(code).Length;
+        }
+        return u;
+    }
+
+    /// <summary>返回 word 从 0 开始最多 units 个字宽单位对应的字符数（超长单词硬切）</summary>
+    private static int IndexAtUnits(string word, int from, int units)
+    {
+        int u = 0, i = from;
+        while (i < word.Length)
+        {
+            int code = char.ConvertToUtf32(word, i);
+            int cu = CharUnits(code);
+            if (u + cu > units) break;
+            u += cu;
+            i += char.ConvertFromUtf32(code).Length;
+        }
+        return i;
     }
 
     private static Layout LayoutLabel(int dpi, double widthMm, double heightMm, string header, string itemNo, string[] keys, string[] values, bool withHeader)
@@ -164,7 +209,8 @@ internal static class LabelRender
         int H = Dots(heightMm, dpi);
         int pad = Dots(PAD_MM, dpi);
         int gap = Dots(GAP_MM, dpi);
-        int qrSize = Math.Min((int)Math.Round(H * 0.58), (int)Math.Round(W * 0.28));
+        // 二维码大小对齐 HSTIP 实测（约 19mm 见方），贴右下角
+        int qrSize = Math.Min((int)Math.Round(H * 0.48), (int)Math.Round(W * 0.28));
         int textW = Math.Max(40, W - pad * 2 - gap - qrSize);
         int contentH = H - pad * 2;
 
@@ -378,7 +424,7 @@ internal static class LabelRender
                     }
                 }
 
-                // 二维码固定右下角
+                // 二维码固定右下角（对齐 HSTIP：约 19mm，比原逻辑稍大更贴近原版）
                 string qrText = string.IsNullOrEmpty(qrValue) ? itemNo : qrValue;
                 using (QRCodeData qr = QRCodeGenerator.GenerateQrCode(qrText, QRCodeGenerator.ECCLevel.M))
                 {
@@ -388,9 +434,6 @@ internal static class LabelRender
                     DrawQr(g, qr, W - L.Pad - total, H - L.Pad - total, L.QrSize);
                 }
             }
-
-            // 整张标签外框（1px），同时用于验证位图边界是否被裁切
-            using (Pen p = new Pen(Color.Black, 1)) { g.DrawRectangle(p, 0, 0, W - 1, H - 1); }
 
             if (!string.IsNullOrEmpty(previewPath)) bmp.Save(previewPath, ImageFormat.Png);
 

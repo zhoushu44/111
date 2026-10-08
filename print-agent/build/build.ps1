@@ -1,4 +1,4 @@
-# 编译打印代理（.NET Framework 3.5 / CLR2），产物可运行于 Windows XP / 7 / 10 / 11。
+﻿# 编译打印代理（.NET Framework 3.5 / CLR2），产物可运行于 Windows XP / 7 / 10 / 11。
 #
 # 前置条件：任意较新的 .NET SDK（提供 dotnet 命令）。
 # 参考程序集由 NuGet 包 Microsoft.NETFramework.ReferenceAssemblies 自动还原，

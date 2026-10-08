@@ -1,0 +1,19 @@
+{
+  "prnOut": "C:\\Users\\zhou\\Desktop\\1116\\.dbg\\test_scale.prn",
+  "previewOut": "C:\\Users\\zhou\\Desktop\\1116\\.dbg\\preview_scale.png",
+  "labels": [
+    {
+      "variant": "FULL",
+      "header": true,
+      "qrValue": "CN26F81059",
+      "data": {
+        "itemNo": "CN26F81059",
+        "composition": "65% Cotton 35% Polyester",
+        "construction": "Single Jersey Knitted Fabric",
+        "width": "150cm",
+        "weight": "120g/m2",
+        "remark": "全棉针织面料，手感柔软，亲肤舒适，适合婴幼儿贴身穿着，请冷水洗涤，勿漂白，低温熨烫，深浅色分开洗"
+      }
+    }
+  ]
+}
